@@ -1,0 +1,210 @@
+# LocalClinical-Tuner - single config that drives the whole pipeline.
+# Any value can be overridden from the CLI:  --set sft.epochs=1 --set data.n_encounters=50
+# Relative paths are resolved against the repository root.
+
+project:
+  seed: 3407
+  output_dir: outputs
+  results_dir: results
+
+# ---------------------------------------------------------------------------------------------------------------
+# OpenAI-compatible endpoints (vLLM / Ollama / llama.cpp server / SGLang). Everything runs on localhost by default,
+# so no clinical text ever leaves the machine. scripts/run_full_pipeline.sh starts/stops the vLLM servers.
+# ---------------------------------------------------------------------------------------------------------------
+endpoints:
+  claude:               # PRIMARY synthetic-data generator (Anthropic API). Only synthetic content is sent.
+    provider: anthropic # credentials: ANTHROPIC_API_KEY (env or the gitignored .env) or `ant auth login`
+    model: claude-sonnet-5-5
+    max_concurrency: 16
+    effort: null        # null = API default; low|medium|high|xhigh|max trade cost for depth
+    server_fallback: true        # fallbacks="default": server-side retry if a request is declined
+    send_sampling_params: false  # Claude Sonnet 5.5 rejects non-default temperature/top_p
+    pricing: {input: 2.0, output: 10.0, cache_read: 0.2, cache_write: 2.5}   # USD per 1M tokens
+  teacher:              # local FALLBACK generator + critic for Claude-made data: Qwen3-32B (FP8, vLLM)
+    base_url: http://127.0.0.1:8100/v1
+    model: teacher
+    label: Qwen/Qwen3-32B
+    max_concurrency: 96
+    extra_body:
+      chat_template_kwargs: {enable_thinking: false}
+      top_k: 20
+  judge:                # LLM-as-a-judge: a *different* model than the generators to avoid self-preference bias
+    base_url: http://127.0.0.1:8200/v1
+    model: judge
+    label: Qwen/Qwen2.5-72B-Instruct
+    max_concurrency: 64
+  base:                 # Qwen2.5-7B-Instruct, bf16 (zero-shot baseline)
+    base_url: http://127.0.0.1:8300/v1
+    model: base
+    max_concurrency: 128
+  sft:                  # Stage-1 model (merged bf16)
+    base_url: http://127.0.0.1:8301/v1
+    model: sft
+    max_concurrency: 128
+  orpo:                 # Stage-2 model (merged bf16) - the final model
+    base_url: http://127.0.0.1:8302/v1
+    model: orpo
+    max_concurrency: 128
+  gguf_q4:              # final model as Q4_K_M GGUF served by Ollama (quantization-impact check)
+    base_url: http://127.0.0.1:11434/v1
+    model: localclinical
+    max_concurrency: 4
+  ollama:               # what the Gradio demo talks to
+    base_url: http://127.0.0.1:11434/v1
+    model: localclinical
+    max_concurrency: 4
+
+# ---------------------------------------------------------------------------------------------------------------
+data:
+  raw_dir: data/raw
+  filtered_dir: data/filtered
+  review_dir: data/review
+  processed_dir: data/processed
+  data_card: data/DATA_CARD.md
+  generation:
+    primary: claude           # Claude via the Anthropic API
+    fallback: teacher         # local vLLM teacher if Claude is unavailable / a request fails
+  composition:
+    total_encounters: 1000    # reference run: 50 Claude batches (750 notes); all 117 batches support 2000
+    synthetic_fraction: 0.7   # 70% synthetic (Claude), 30% public Hugging Face dialogues
+  synthetic:
+    n_generate: 1750          # over-generate; the quality filter rejects a share
+    note_generation: {temperature: 0.9, top_p: 0.95, max_tokens: 1600}   # sampling used by local fallback only
+    min_note_words: 100
+    max_note_words: 1000
+  annotation: {temperature: 0.3, top_p: 0.9, max_tokens: 3000}
+  hf:
+    sources:
+      - name: aci-bench
+        hf_id: mkieffer/ACI-Bench          # faithful HF mirror of github.com/wyim/aci-bench
+        configs: [aci, virtassist, virtscribe]
+        splits: [train, valid, test1, test2, test3]
+        license: CC-BY-4.0
+        upstream: https://github.com/wyim/aci-bench
+        citation: "Yim et al. ACI-BENCH: a Novel Ambient Clinical Intelligence Dataset for Benchmarking Automatic Visit Note Generation. Scientific Data 10, 586 (2023)."
+        reuse_reference: soap_from_note    # clinician-written note -> SOAP label (restructured, content reused)
+      - name: mts-dialog
+        hf_id: lyumengxian/MTS-Dialog      # HF mirror of github.com/abachaa/MTS-Dialog (same 1201/100/200 splits)
+        configs: [null]
+        splits: [train, validation, test]
+        license: CC-BY-4.0
+        upstream: https://github.com/abachaa/MTS-Dialog
+        citation: "Ben Abacha et al. An Empirical Study of Clinical Note Generation from Doctor-Patient Encounters. EACL 2023."
+        reuse_reference: summary_from_section   # human-written GENHX section text -> summary label
+    excluded:
+      - name: omi-health/medical-dialogue-to-soap-summary
+        reason: "No open license: the card permits use by Omi only, and further use requires permission from the NoteChat authors; upstream NoteChat/PMC-Patients is CC BY-NC-SA 4.0."
+      - name: har1/MTS_Dialogue-Clinical_Note
+        reason: "Modified MTS-Dialog relabelled as MIT, which conflicts with the upstream CC BY 4.0 terms; the unmodified mirror is used instead."
+      - name: MIMIC-III/IV, n2c2/i2b2
+        reason: "Credentialed real-patient data (PhysioNet DUA / n2c2 DUA) - excluded by policy."
+    cleaning:
+      min_words: 80
+      max_words: 1800           # keeps note + output within the 4,096-token training context
+      min_english_score: 0.15
+      near_duplicate_jaccard: 0.6
+  quality:
+    rules:
+      max_major: 1              # >1 major rule violation -> reject; any critical -> reject
+      min_entities: 3
+      max_ungrounded_entity_frac: 0.2
+      summary_words: [25, 160]
+    critic:
+      enabled: true
+      endpoints: [teacher, claude, judge]   # first reachable model (family) that did NOT generate the record
+      min_overall: 3
+      min_dimension: 2
+      max_tokens: 4096
+    review: {n_accepted: 25, n_rejected: 25}
+  splits:                     # split by ENCOUNTER, stratified by source; remainder -> SFT train
+    test: 0.10                # values < 1 are fractions of the final dataset (~1,000 -> 100 / 25 / 150)
+    val: 0.025
+    pref: 0.15                # prompts for the preference (ORPO) stage, disjoint from SFT train
+  near_duplicate_jaccard: 0.6
+
+# ---------------------------------------------------------------------------------------------------------------
+model:
+  base_model: Qwen/Qwen2.5-7B-Instruct      # or meta-llama/Llama-3.1-8B-Instruct
+  max_seq_length: 4096
+  load_in_4bit: true                        # QLoRA
+  chat_template_markers: auto
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.0
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  use_dora: false        # DoRA works with Unsloth but trains slower and vLLM cannot serve DoRA adapters unmerged
+  use_rslora: false
+
+sft:
+  output_dir: outputs/sft
+  epochs: 2
+  learning_rate: 2.0e-4
+  per_device_batch_size: 4
+  gradient_accumulation_steps: 4          # effective batch 16
+  warmup_ratio: 0.05
+  lr_scheduler: cosine
+  weight_decay: 0.01
+  optim: adamw_8bit
+  logging_steps: 10
+  eval_steps: 50
+  save_merged: true
+
+# Preference data: on-policy samples from the SFT model scored against the gold reference; the worst sample becomes
+# "rejected" when it is clearly worse than gold, otherwise a targeted hard negative (hallucinated medication,
+# flipped negation, dropped entity) is synthesized from the gold answer.
+preference:
+  policy_endpoint: sft
+  n_samples: 4
+  temperature: 0.9
+  top_p: 0.95
+  max_tokens: 1536
+  min_margin: 0.15
+  hard_negatives: true
+  val_fraction: 0.05
+
+orpo:
+  method: orpo                             # orpo | dpo
+  output_dir: outputs/orpo
+  beta: 0.1                                # ORPO lambda (odds-ratio weight) / DPO beta
+  nll_on_prompt: false                     # ORPO NLL on the response only (TRL default: prompt + response)
+  epochs: 2
+  learning_rate: 3.0e-5
+  per_device_batch_size: 1                # chosen + rejected per step; peak 14.9 GB on the longest pairs (bs 2: 24.0 GB)
+  gradient_accumulation_steps: 16         # effective batch 16
+  warmup_ratio: 0.1
+  lr_scheduler: cosine
+  weight_decay: 0.0
+  optim: adamw_8bit
+  logging_steps: 5
+  eval_steps: 25
+  save_merged: true
+
+evaluation:
+  models: [base, sft, orpo]
+  temperature: 0.0                         # greedy decoding, identical settings for every model
+  max_tokens: 1536
+  extra_body: {repetition_penalty: 1.05}   # Qwen2.5's recommended value, applied to all models
+  bertscore_model: roberta-large
+  bertscore_batch_size: 32
+  bootstrap_samples: 1000
+  judge_endpoint: judge
+  judge_per_task: 50                       # 150 test items judged; pairwise judging runs in both orders
+  judge_pairs: [[orpo, base], [orpo, sft], [sft, base]]
+  n_sample_outputs: 2
+
+export:
+  merged_model: outputs/orpo/merged
+  output_dir: outputs/gguf
+  model_name: localclinical
+  quantizations: [Q4_K_M, Q5_K_M]
+  llama_cpp_dir: third_party/llama.cpp
+  llama_cpp_ref: v0.6.0          # pinned llama.cpp release
+  modelfile_quant: Q4_K_M
+
+serving:
+  endpoint: ollama
+  compare_endpoint: null
+  gradio_host: 127.0.0.1
+  gradio_port: 7860

@@ -1,0 +1,50 @@
+{
+  "split_sizes_encounters": {
+    "test": 100,
+    "val": 25,
+    "pref": 150,
+    "train": 725
+  },
+  "splits": [
+    "test",
+    "val",
+    "pref",
+    "train"
+  ],
+  "sources": [
+    "aci-bench",
+    "mts-dialog",
+    "synthetic"
+  ],
+  "by_split_source": {
+    "test": {
+      "aci-bench": 4,
+      "mts-dialog": 26,
+      "synthetic": 70
+    },
+    "val": {
+      "aci-bench": 1,
+      "mts-dialog": 6,
+      "synthetic": 18
+    },
+    "pref": {
+      "aci-bench": 7,
+      "mts-dialog": 38,
+      "synthetic": 105
+    },
+    "train": {
+      "aci-bench": 33,
+      "mts-dialog": 185,
+      "synthetic": 507
+    }
+  },
+  "total_encounters": 1000,
+  "total_examples": 3000,
+  "achieved_synthetic_fraction": 0.7,
+  "generators": {
+    "claude-sonnet-5-5 (Claude Code subagent)": 700,
+    "dataset:mts-dialog": 255,
+    "dataset:aci-bench": 45
+  },
+  "note": null
+}

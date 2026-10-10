@@ -1,0 +1,39 @@
+# Secrets - never commit API keys
+.env
+.env.*
+
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/
+
+# Large artifacts (models, adapters, checkpoints, GGUF, caches, logs)
+outputs/
+third_party/
+unsloth_compiled_cache/
+_unsloth_temporary_saved_buffers/
+wandb/
+*.gguf
+*.safetensors
+*.bin
+
+# Raw / intermediate data (regenerable; the processed splits are kept small enough to commit if desired)
+data/raw/*
+!data/raw/.gitkeep
+data/filtered/*.jsonl
+data/processed/*
+!data/processed/.gitkeep
+!data/processed/split_stats.json
+!data/processed/pref_stats.json
+
+# Raw judge transcripts / generations can be large; metrics + tables are committed
+results/generations/
+results/judge/
+results/generations_val/
+results/judge_val/

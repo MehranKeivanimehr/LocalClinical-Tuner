@@ -1,0 +1,145 @@
+{
+  "critic": "Qwen/Qwen2.5-72B-Instruct",
+  "n_clean": 38,
+  "n_corrupted": 38,
+  "detection_rate": 0.816,
+  "clean_false_reject_rate": 0.105,
+  "by_kind": {
+    "clean": {
+      "accepted": 34,
+      "rejected": 4
+    },
+    "hallucinated_med_summary": {
+      "rejected": 8,
+      "accepted": 1
+    },
+    "flipped_negation": {
+      "rejected": 9,
+      "accepted": 1
+    },
+    "dropped_diagnosis": {
+      "rejected": 6,
+      "accepted": 4
+    },
+    "hallucinated_med_plan": {
+      "rejected": 8,
+      "accepted": 1
+    }
+  },
+  "clean_reject_reasons": {
+    "critic_check:unsupported_statement": 3,
+    "critic_low:entity_accuracy": 1,
+    "critic_critical:hallucination": 1
+  },
+  "clean_reject_examples": [
+    {
+      "reasons": [
+        "critic_check:unsupported_statement"
+      ],
+      "checks": {
+        "unsupported_statements": [
+          "The summary states the patient presented to urgent care, but the note is a dialogue transcript and does not specify the setting."
+        ],
+        "negation_flag_errors": [],
+        "omitted_key_findings": [
+          "The SOAP note does not document the patient's concern about the rash being contagious, which is a key point in the dialogue."
+        ]
+      },
+      "errors": [
+        {
+          "severity": "minor",
+          "field": "summary",
+          "category": "hallucination",
+          "description": "The summary incorrectly states the patient presented to urgent care, but the note is a dialogue transcript and does not specify the setting."
+        },
+        {
+          "severity": "major",
+          "field": "soap",
+          "category": "omission",
+          "description": "The SOAP note omits the patient's concern about the rash being contagious, which is a key point in the dialogue."
+        }
+      ]
+    },
+    {
+      "reasons": [
+        "critic_low:entity_accuracy"
+      ],
+      "checks": {
+        "unsupported_statements": [],
+        "negation_flag_errors": [],
+        "omitted_key_findings": []
+      },
+      "errors": []
+    },
+    {
+      "reasons": [
+        "critic_check:unsupported_statement",
+        "critic_critical:hallucination"
+      ],
+      "checks": {
+        "unsupported_statements": [
+          "The SOAP note states 'K 6.8 on admission and 5.4 today' but the note only mentions 'K 6.8 -> 5.4' without specifying the exact timing of the 5.4 value."
+        ],
+        "negation_flag_errors": [],
+        "omitted_key_findings": [
+          "The SOAP note does not document the patient's A1c of 8.4 in the ASSESSMENT or PLAN sections."
+        ]
+      },
+      "errors": [
+        {
+          "severity": "critical",
+          "field": "soap",
+          "category": "hallucination",
+          "description": "The SOAP note states 'K 6.8 on admission and 5.4 today' but the note only mentions 'K 6.8 -> 5.4' without specifying the exact timing of the 5.4 value."
+        },
+        {
+          "severity": "major",
+          "field": "soap",
+          "category": "omission",
+          "description": "The SOAP note does not document the patient's A1c of 8.4 in the ASSESSMENT or PLAN sections."
+        }
+      ]
+    },
+    {
+      "reasons": [
+        "critic_check:unsupported_statement"
+      ],
+      "checks": {
+        "unsupported_statements": [
+          "The SOAP note mentions 'chest pain with exertion and shortness of breath' in the subjective section, but the patient denies these symptoms."
+        ],
+        "negation_flag_errors": [],
+        "omitted_key_findings": [
+          "The SOAP note does not mention the patient's blood pressure and heart rate, which are documented in the note.",
+          "The SOAP note does not mention the patient's follow-up visit after the endoscopy, which is documented in the note."
+        ]
+      },
+      "errors": [
+        {
+          "severity": "minor",
+          "field": "summary",
+          "category": "inconsistency",
+          "description": "The summary states that the patient has been taking omeprazole 20 mg once a day for three months, but the note mentions 'for the last three months.'"
+        },
+        {
+          "severity": "minor",
+          "field": "soap",
+          "category": "inconsistency",
+          "description": "The SOAP note mentions 'chest pain with exertion and shortness of breath' in the subjective section, but the patient denies these symptoms."
+        },
+        {
+          "severity": "minor",
+          "field": "soap",
+          "category": "omission",
+          "description": "The SOAP note does not mention the patient's blood pressure and heart rate, which are documented in the note."
+        },
+        {
+          "severity": "minor",
+          "field": "soap",
+          "category": "omission",
+          "description": "The SOAP note does not mention the patient's follow-up visit after the endoscopy, which is documented in the note."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "input_records": 1556,
+  "accepted": 1046,
+  "rejected": 510,
+  "funnel_by_source": {
+    "synthetic": {
+      "accepted": 732,
+      "rejected_rules": 2,
+      "rejected_critic": 16
+    },
+    "mts-dialog": {
+      "accepted": 267,
+      "rejected_rules": 243,
+      "rejected_critic": 115
+    },
+    "aci-bench": {
+      "accepted": 47,
+      "rejected_rules": 58,
+      "rejected_critic": 76
+    }
+  },
+  "rejection_reasons": {
+    "rules": {
+      "rule:grounding": 295,
+      "rule:unsupported_medication": 6,
+      "rule:allergy_conflict:major": 2,
+      "rule:max_dose": 1
+    },
+    "rules|synthetic": {
+      "rule:allergy_conflict:major": 2
+    },
+    "rules|mts-dialog": {
+      "rule:grounding": 240,
+      "rule:unsupported_medication": 3
+    },
+    "rules|aci-bench": {
+      "rule:grounding": 55,
+      "rule:unsupported_medication": 3,
+      "rule:max_dose": 1
+    },
+    "critic": {
+      "critic_low:summary_faithfulness": 75,
+      "critic_overall<3": 74,
+      "critic_major:omissions": 72,
+      "critic_check:unsupported_statement": 68,
+      "critic_critical:hallucination": 32,
+      "critic_check:negation_flag_error": 27,
+      "critic_critical:negation_error": 21,
+      "critic_low:entity_accuracy": 20,
+      "critic_low:soap_faithfulness": 18,
+      "critic_critical:omission": 12,
+      "no_independent_critic": 11,
+      "critic_low:soap_completeness": 6,
+      "critic_low:clinical_plausibility": 6,
+      "critic_critical:inconsistency": 2,
+      "critic_critical:other": 1,
+      "critic_critical:clinical_implausibility": 1,
+      "critic_low:internal_consistency": 1
+    },
+    "critic|synthetic": {
+      "critic_check:negation_flag_error": 7,
+      "critic_critical:negation_error": 7,
+      "critic_major:omissions": 5,
+      "critic_check:unsupported_statement": 4,
+      "critic_low:entity_accuracy": 3,
+      "critic_critical:hallucination": 2
+    },
+    "critic|mts-dialog": {
+      "critic_low:summary_faithfulness": 55,
+      "critic_major:omissions": 48,
+      "critic_overall<3": 45,
+      "critic_check:unsupported_statement": 40,
+      "critic_low:soap_faithfulness": 16,
+      "critic_critical:hallucination": 16,
+      "critic_check:negation_flag_error": 12,
+      "critic_low:entity_accuracy": 12,
+      "critic_critical:negation_error": 11,
+      "critic_low:soap_completeness": 6,
+      "critic_critical:omission": 2
+    },
+    "critic|aci-bench": {
+      "critic_overall<3": 29,
+      "critic_check:unsupported_statement": 24,
+      "critic_low:summary_faithfulness": 20,
+      "critic_major:omissions": 19,
+      "critic_critical:hallucination": 14,
+      "no_independent_critic": 11,
+      "critic_critical:omission": 10,
+      "critic_check:negation_flag_error": 8,
+      "critic_low:clinical_plausibility": 6,
+      "critic_low:entity_accuracy": 5,
+      "critic_critical:negation_error": 3,
+      "critic_low:soap_faithfulness": 2,
+      "critic_critical:inconsistency": 2,
+      "critic_critical:other": 1,
+      "critic_critical:clinical_implausibility": 1,
+      "critic_low:internal_consistency": 1
+    }
+  },
+  "rule_findings": {
+    "allergy_conflict:major": 5,
+    "grounding:critical": 371,
+    "grounding:minor": 187,
+    "max_dose:critical": 1,
+    "unsupported_medication:critical": 8
+  },
+  "critic_models": {
+    "synthetic<-Qwen/Qwen3-32B": 748,
+    "mts-dialog<-Qwen/Qwen2.5-72B-Instruct": 382,
+    "aci-bench<-Qwen/Qwen2.5-72B-Instruct": 112
+  },
+  "critic_score_means": {
+    "clinical_plausibility": 4.874,
+    "internal_consistency": 4.904,
+    "summary_faithfulness": 4.679,
+    "soap_faithfulness": 4.628,
+    "soap_completeness": 4.634,
+    "entity_accuracy": 4.599,
+    "overall": 4.496
+  },
+  "critic_error_counts": {
+    "major:omission": 232,
+    "critical:hallucination": 56,
+    "minor:omission": 40,
+    "critical:omission": 39,
+    "critical:negation_error": 34,
+    "major:hallucination": 12,
+    "minor:format": 10,
+    "minor:inconsistency": 7,
+    "major:inconsistency": 5,
+    "major:wrong_section": 3,
+    "critical:inconsistency": 2,
+    "minor:clinical_implausibility": 1,
+    "minor:hallucination": 1,
+    "major:format": 1,
+    "critical:other": 1,
+    "critical:clinical_implausibility": 1
+  },
+  "critic_usage": {
+    "Qwen/Qwen3-32B": {
+      "input_tokens": 5268606,
+      "output_tokens": 418231,
+      "requests": 2666
+    },
+    "Qwen/Qwen2.5-72B-Instruct": {
+      "input_tokens": 3614021,
+      "output_tokens": 791567,
+      "requests": 2356
+    }
+  },
+  "accepted_by_source": {
+    "synthetic": 732,
+    "mts-dialog": 267,
+    "aci-bench": 47
+  },
+  "phi_final_sweep": {
+    "first_name": 3,
+    "calendar_date": 107,
+    "surname": 19,
+    "introduced_name": 8,
+    "titled_name": 5
+  }
+}

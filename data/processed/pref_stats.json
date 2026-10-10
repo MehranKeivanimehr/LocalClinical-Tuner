@@ -1,0 +1,17 @@
+{
+  "prompts": 450,
+  "pairs": 450,
+  "train_pairs": 426,
+  "val_pairs": 24,
+  "mean_margin": 0.2607,
+  "task:summary": 150,
+  "on_policy": 275,
+  "task:soap": 150,
+  "task:entities": 150,
+  "hard_negative:dropped_plan": 40,
+  "hard_negative_total": 175,
+  "hard_negative:hallucinated_medication": 63,
+  "hard_negative:flipped_negation": 23,
+  "hard_negative:dropped_diagnosis": 15,
+  "hard_negative:wrong_section": 34
+}

@@ -1,0 +1,28 @@
+{
+  "critic": "Qwen/Qwen3-32B",
+  "n_clean": 60,
+  "n_corrupted": 60,
+  "detection_rate": 0.833,
+  "clean_false_reject_rate": 0.0,
+  "by_kind": {
+    "clean": {
+      "accepted": 60
+    },
+    "hallucinated_med_summary": {
+      "rejected": 15
+    },
+    "hallucinated_med_plan": {
+      "rejected": 15
+    },
+    "flipped_negation": {
+      "rejected": 13,
+      "accepted": 2
+    },
+    "dropped_diagnosis": {
+      "rejected": 7,
+      "accepted": 8
+    }
+  },
+  "clean_reject_reasons": {},
+  "clean_reject_examples": []
+}
