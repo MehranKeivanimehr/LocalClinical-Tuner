@@ -30,16 +30,39 @@ def test_judge_pairs_cli_override():
     assert evaluate.judge_pairs(cfg, argparse.Namespace(pairs=["orpo_l0.1:sft"])) == [("orpo_l0.1", "sft")]
 
 
+def _gens(tmp_path, outputs):
+    for tag, by_id in outputs.items():
+        write_jsonl(tmp_path / "generations" / f"{tag}.jsonl", [{"id": i, "output": o} for i, o in by_id.items()])
+
+
 def test_pairwise_summary_is_position_debiased(tmp_path, monkeypatch):
     cfg = _cfg(tmp_path)
     monkeypatch.setattr(evaluate, "SPLIT", "test")
+    outs = {"x": {f"e{i}": f"x answer {i}" for i in (1, 2, 3)}, "y": {f"e{i}": f"y answer {i}" for i in (1, 2, 3)}}
+    _gens(tmp_path, outs)
+    h = {m: {i: evaluate.output_hash(o) for i, o in v.items()} for m, v in outs.items()}
     rows = []
     # item 1: x wins in both orders; item 2: y wins in both; item 3: the judge follows position -> tie
     for i, (first, second) in enumerate([("A", "B"), ("B", "A"), ("A", "A")], 1):
-        rows.append({"a": "x", "b": "y", "id": f"e{i}", "winner": first})
-        rows.append({"a": "y", "b": "x", "id": f"e{i}", "winner": second})
+        e = f"e{i}"
+        rows.append({"a": "x", "b": "y", "id": e, "winner": first, "a_hash": h["x"][e], "b_hash": h["y"][e]})
+        rows.append({"a": "y", "b": "x", "id": e, "winner": second, "a_hash": h["y"][e], "b_hash": h["x"][e]})
     write_jsonl(tmp_path / "judge" / "pairwise.jsonl", rows)
     out = evaluate.summarize_judge(cfg, [("x", "y")])["pairwise"]["x_vs_y"]
     assert out["n"] == 3 and out["win"] == round(1 / 3, 4) and out["loss"] == round(1 / 3, 4)
     assert out["tie"] == round(1 / 3, 4) and out["position_consistency"] == round(2 / 3, 4)
     assert read_json(tmp_path / "metrics.json")["judge"]["pairwise"]["x_vs_y"] == out
+
+
+def test_judge_verdicts_on_regenerated_outputs_are_ignored(tmp_path, monkeypatch):
+    cfg = _cfg(tmp_path)
+    monkeypatch.setattr(evaluate, "SPLIT", "test")
+    old = {"m": {"e1": "old answer", "e2": "same answer"}}
+    rows = [{"model": "m", "id": i, "task": "summary", "judge": "j", "out_hash": evaluate.output_hash(o),
+             **dict.fromkeys(("faithfulness", "completeness", "format", "clinical_usefulness", "overall"), 5)}
+            for i, o in old["m"].items()]
+    rows.append({**rows[0], "id": "e2", "out_hash": None, "overall": 1})  # legacy verdict without fingerprint
+    write_jsonl(tmp_path / "judge" / "absolute.jsonl", rows)
+    _gens(tmp_path, {"m": {"e1": "NEW answer", "e2": "same answer"}})  # e1 was regenerated after judging
+    summary = evaluate.summarize_judge(cfg, [])
+    assert summary["absolute"]["m"]["overall"]["mean"] == 5.0  # only the e2 verdict on the current output counts

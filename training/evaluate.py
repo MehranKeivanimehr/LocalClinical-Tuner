@@ -55,7 +55,15 @@ from clinical_tuner.metrics import (
 )
 from clinical_tuner.prompts import TASK_INSTRUCTIONS
 from clinical_tuner.schemas import Entities
-from clinical_tuner.utils import append_jsonl, read_json, read_jsonl, resolve, setup_logging, write_json
+from clinical_tuner.utils import (
+    append_jsonl,
+    read_json,
+    read_jsonl,
+    resolve,
+    setup_logging,
+    stable_hash,
+    write_json,
+)
 
 log = logging.getLogger("evaluate")
 
@@ -244,10 +252,9 @@ def cmd_score(cfg: Config, args: argparse.Namespace) -> None:
                 entry["by_source"][src] = score_rows(cfg, sub, bert)
         out["models"][tag] = entry
         log.info("Scored %s (%d outputs)", tag, len(pairs))
-    old = read_json(metrics_path(cfg)) if metrics_path(cfg).exists() else {}
-    if "judge" in old:
-        out["judge"] = old["judge"]
     write_json(metrics_path(cfg), out)
+    if judge_dir(cfg).exists():  # keep only judge verdicts that refer to the outputs just scored
+        summarize_judge(cfg, judge_pairs(cfg, args))
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -314,18 +321,23 @@ async def cmd_judge(cfg: Config, args: argparse.Namespace) -> None:
         return JUDGE_USER.format(instructions=TASK_INSTRUCTIONS[ex["task"]], note=ex["note"], responses=responses)
 
     abs_path, pair_path = jdir / "absolute.jsonl", jdir / "pairwise.jsonl"
-    done_abs = {(r["model"], r["id"]) for r in read_jsonl(abs_path)} if abs_path.exists() else set()
-    done_pair = {(r["a"], r["b"], r["id"]) for r in read_jsonl(pair_path)} if pair_path.exists() else set()
+    h = {m: {i: output_hash(o) for i, o in g.items()} for m, g in gens.items()}
+    # a verdict is reused only if it judged exactly the current output(s); regenerated outputs are judged again
+    done_abs = ({(r["model"], r["id"], r.get("out_hash")) for r in read_jsonl(abs_path)} if abs_path.exists()
+                else set())
+    done_pair = ({(r["a"], r["b"], r["id"], r.get("a_hash"), r.get("b_hash")) for r in read_jsonl(pair_path)}
+                 if pair_path.exists() else set())
 
     jobs: list[tuple] = []
     for ex in subset:
+        i = ex["id"]
         for m in models:
-            if ex["id"] in gens[m] and (m, ex["id"]) not in done_abs:
+            if i in gens[m] and (m, i, h[m][i]) not in done_abs:
                 jobs.append(("abs", m, None, ex))
         for a, b in pairs:
-            if a in gens and b in gens and ex["id"] in gens[a] and ex["id"] in gens[b]:
+            if a in gens and b in gens and i in gens[a] and i in gens[b]:
                 for x, y in ((a, b), (b, a)):  # both presentation orders
-                    if (x, y, ex["id"]) not in done_pair:
+                    if (x, y, i, h[x][i], h[y][i]) not in done_pair:
                         jobs.append(("pair", x, y, ex))
 
     async def run(job: tuple) -> None:
@@ -336,14 +348,16 @@ async def cmd_judge(cfg: Config, args: argparse.Namespace) -> None:
             raw = (await client.chat(msgs, temperature=0.0, max_tokens=600, json_schema=ABS_SCHEMA))[0]
             v = extract_json(raw) or {}
             append_jsonl(abs_path, {"model": x, "id": ex["id"], "task": ex["task"], "source": ex["source"],
-                                    "judge": judge_id, **{k: v.get(k) for k in ABS_SCHEMA["properties"]}})
+                                    "judge": judge_id, "out_hash": h[x][ex["id"]],
+                                    **{k: v.get(k) for k in ABS_SCHEMA["properties"]}})
         else:
             resp = (f"Response A:\n\"\"\"\n{gens[x][ex['id']]}\n\"\"\"\n\nResponse B:\n\"\"\"\n{gens[y][ex['id']]}\n\"\"\"")
             msgs = [{"role": "system", "content": JUDGE_PAIR_SYSTEM}, {"role": "user", "content": user(ex, resp)}]
             raw = (await client.chat(msgs, temperature=0.0, max_tokens=400, json_schema=PAIR_SCHEMA))[0]
             v = extract_json(raw) or {}
             append_jsonl(pair_path, {"a": x, "b": y, "id": ex["id"], "task": ex["task"], "source": ex["source"],
-                                     "judge": judge_id, "winner": v.get("winner"), "rationale": v.get("rationale")})
+                                     "judge": judge_id, "a_hash": h[x][ex["id"]], "b_hash": h[y][ex["id"]],
+                                     "winner": v.get("winner"), "rationale": v.get("rationale")})
 
     log.info("Judge %s: %d jobs on %d items", judge_id, len(jobs), len(subset))
     res = await gather_with_progress(jobs, run, desc="judge")
@@ -354,6 +368,17 @@ async def cmd_judge(cfg: Config, args: argparse.Namespace) -> None:
     summarize_judge(cfg, pairs)
 
 
+def output_hash(text: str) -> str:
+    """Fingerprint of a judged output: a verdict is reused / reported only while the output it judged is unchanged."""
+    return stable_hash(text, 16)
+
+
+def current_output_hashes(cfg: Config) -> dict[str, dict[str, str]]:
+    """{tag: {example id: output hash}} for every generations file of the current split (incl. tuning candidates)."""
+    gdir = gen_path(cfg, "_").parent
+    return {p.stem: {g["id"]: output_hash(g["output"]) for g in read_jsonl(p)} for p in sorted(gdir.glob("*.jsonl"))}
+
+
 def judge_pairs(cfg: Config, args: argparse.Namespace) -> list[tuple[str, str]]:
     if getattr(args, "pairs", None):
         return [tuple(p.split(":", 1)) for p in args.pairs]  # type: ignore[misc]
@@ -361,10 +386,18 @@ def judge_pairs(cfg: Config, args: argparse.Namespace) -> list[tuple[str, str]]:
 
 
 def summarize_judge(cfg: Config, pairs: list[tuple[str, str]]) -> dict[str, Any]:
+    """Summarise the judge verdicts that refer to the current outputs (stale verdicts of regenerated outputs and
+    verdicts without an output fingerprint are ignored)."""
     jdir = judge_dir(cfg)
+    cur = current_output_hashes(cfg)
+
+    def fresh(model: str, i: str, hsh: str | None) -> bool:
+        return hsh is not None and cur.get(model, {}).get(i) == hsh
+
     summary: dict[str, Any] = {"absolute": {}, "pairwise": {}}
     if (jdir / "absolute.jsonl").exists():
-        rows = [r for r in read_jsonl(jdir / "absolute.jsonl") if isinstance(r.get("overall"), int)]
+        rows = [r for r in read_jsonl(jdir / "absolute.jsonl") if isinstance(r.get("overall"), int)
+                and fresh(r["model"], r["id"], r.get("out_hash"))]
         summary["judge_model"] = rows[0]["judge"] if rows else None
         order = {m: k for k, m in enumerate(model_order(cfg))}
         for m in sorted({r["model"] for r in rows}, key=lambda x: (order.get(x, len(order)), x)):
@@ -375,7 +408,8 @@ def summarize_judge(cfg: Config, pairs: list[tuple[str, str]]) -> dict[str, Any]
                                                                            if r["task"] == t), 3)
                                                  for t in sorted({r["task"] for r in mr})}
     if (jdir / "pairwise.jsonl").exists():
-        rows = read_jsonl(jdir / "pairwise.jsonl")
+        rows = [r for r in read_jsonl(jdir / "pairwise.jsonl")
+                if fresh(r["a"], r["id"], r.get("a_hash")) and fresh(r["b"], r["id"], r.get("b_hash"))]
         verdicts: dict[tuple[str, str, str], dict[str, str | None]] = defaultdict(dict)
         for r in rows:
             winner = {"A": r["a"], "B": r["b"]}.get(r["winner"], "tie")

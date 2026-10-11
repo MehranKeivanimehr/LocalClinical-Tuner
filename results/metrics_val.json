@@ -2042,6 +2042,53 @@
   },
   "judge": {
     "absolute": {
+      "sft": {
+        "faithfulness": {
+          "mean": 4.5479,
+          "ci95": [
+            4.3562,
+            4.726
+          ],
+          "n": 73
+        },
+        "completeness": {
+          "mean": 4.3973,
+          "ci95": [
+            4.2192,
+            4.5753
+          ],
+          "n": 73
+        },
+        "format": {
+          "mean": 4.8767,
+          "ci95": [
+            4.7671,
+            4.9726
+          ],
+          "n": 73
+        },
+        "clinical_usefulness": {
+          "mean": 4.5616,
+          "ci95": [
+            4.3973,
+            4.7123
+          ],
+          "n": 73
+        },
+        "overall": {
+          "mean": 4.4384,
+          "ci95": [
+            4.2603,
+            4.6027
+          ],
+          "n": 73
+        },
+        "by_task": {
+          "entities": 4.2,
+          "soap": 4.609,
+          "summary": 4.52
+        }
+      },
       "orpo_l0.1": {
         "faithfulness": {
           "mean": 4.7162,
@@ -2182,53 +2229,6 @@
           "soap": 4.76,
           "summary": 4.4
         }
-      },
-      "sft": {
-        "faithfulness": {
-          "mean": 4.5479,
-          "ci95": [
-            4.3562,
-            4.726
-          ],
-          "n": 73
-        },
-        "completeness": {
-          "mean": 4.3973,
-          "ci95": [
-            4.2192,
-            4.5753
-          ],
-          "n": 73
-        },
-        "format": {
-          "mean": 4.8767,
-          "ci95": [
-            4.7671,
-            4.9726
-          ],
-          "n": 73
-        },
-        "clinical_usefulness": {
-          "mean": 4.5616,
-          "ci95": [
-            4.3973,
-            4.7123
-          ],
-          "n": 73
-        },
-        "overall": {
-          "mean": 4.4384,
-          "ci95": [
-            4.2603,
-            4.6027
-          ],
-          "n": 73
-        },
-        "by_task": {
-          "entities": 4.2,
-          "soap": 4.609,
-          "summary": 4.52
-        }
       }
     },
     "pairwise": {
@@ -2237,21 +2237,81 @@
         "win": 0.1467,
         "tie": 0.7733,
         "loss": 0.08,
-        "position_consistency": 0.48
+        "position_consistency": 0.48,
+        "by_task": {
+          "summary": {
+            "n": 25,
+            "win": 0.16,
+            "tie": 0.76,
+            "loss": 0.08
+          },
+          "soap": {
+            "n": 25,
+            "win": 0.12,
+            "tie": 0.84,
+            "loss": 0.04
+          },
+          "entities": {
+            "n": 25,
+            "win": 0.16,
+            "tie": 0.72,
+            "loss": 0.12
+          }
+        }
       },
       "orpo_l0.5_vs_sft": {
         "n": 75,
         "win": 0.12,
         "tie": 0.7733,
         "loss": 0.1067,
-        "position_consistency": 0.36
+        "position_consistency": 0.36,
+        "by_task": {
+          "summary": {
+            "n": 25,
+            "win": 0.08,
+            "tie": 0.88,
+            "loss": 0.04
+          },
+          "soap": {
+            "n": 25,
+            "win": 0.16,
+            "tie": 0.8,
+            "loss": 0.04
+          },
+          "entities": {
+            "n": 25,
+            "win": 0.12,
+            "tie": 0.64,
+            "loss": 0.24
+          }
+        }
       },
       "orpo_trlnll_vs_sft": {
         "n": 75,
         "win": 0.12,
         "tie": 0.68,
         "loss": 0.2,
-        "position_consistency": 0.4
+        "position_consistency": 0.4,
+        "by_task": {
+          "summary": {
+            "n": 25,
+            "win": 0.04,
+            "tie": 0.84,
+            "loss": 0.12
+          },
+          "soap": {
+            "n": 25,
+            "win": 0.08,
+            "tie": 0.72,
+            "loss": 0.2
+          },
+          "entities": {
+            "n": 25,
+            "win": 0.24,
+            "tie": 0.48,
+            "loss": 0.28
+          }
+        }
       }
     },
     "judge_model": "Qwen/Qwen2.5-72B-Instruct"

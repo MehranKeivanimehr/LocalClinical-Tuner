@@ -57,8 +57,9 @@ shows the alternative: **bring a small, specialised model to the data instead of
   judging steps use larger local models; see [Hardware](#hardware)).
 * **Works offline.** Once the models are downloaded, nothing needs the network (`HF_HUB_OFFLINE=1` for training;
   Ollama and the UI never need it).
-* **Stable and auditable.** The weights are a file with a SHA-256 checksum ([manifest](#reproduce-everything)); they
-  do not change underneath a workflow, and a validated version can be frozen, like any other software artifact.
+* **Stable and auditable.** The weights are a single file with a SHA-256 checksum (recorded by the export step and
+  listed under [Quickstart](#quickstart-run-the-demo)); they do not change underneath a workflow, and a validated
+  version can be frozen like any other software artifact.
 * **Predictable cost and latency.** No per-token fees and no network round trip: on the reference machine a summary
   takes about 4 seconds once the model is loaded.
 
@@ -71,8 +72,8 @@ shows the alternative: **bring a small, specialised model to the data instead of
 * Checked on the final model: when the UI was loaded in a browser, every request went to `127.0.0.1` (fonts and
   assets are served locally), and while the demo was idle neither Gradio nor Ollama had a connection to any non-local
   address.
-* For real or sensitive notes, `data/import_external_notes.py --private` scrubs identifiers and guarantees that those
-  records are only ever processed by local models.
+* For real or sensitive notes, `data/import_external_notes.py --private` scrubs identifiers and marks the records so
+  that the labelling and quality-filter steps send them only to local models, never to a remote API.
 
 ## Highlights
 
@@ -515,7 +516,13 @@ All three tasks share one system prompt and take the same note as input:
 **What you need:** [uv](https://docs.astral.sh/uv/), [Ollama](https://ollama.com/download) (tested with 0.40.2) and
 the exported model file `outputs/gguf/localclinical-q4_k_m.gguf`. The weights are **not stored in git** (4.4 GB):
 produce them with the pipeline ([Reproduce everything](#reproduce-everything)) or copy the file from wherever it was
-trained into `outputs/gguf/`.
+trained into `outputs/gguf/`. The reference run's file has this SHA-256 (check with
+`sha256sum outputs/gguf/localclinical-q4_k_m.gguf`):
+
+```text
+2fca1270b90fc502e257109ad0e3cc0c508028cf36eafc71a3f6b1480eab300b  localclinical-q4_k_m.gguf
+5d4b3fe1ab68d97a8deba534b9e7e111140864e9679758f9f0e7745091095ac4  localclinical-q5_k_m.gguf
+```
 
 ```bash
 uv sync --locked --extra serve
@@ -601,10 +608,12 @@ GGUF sizes: Q4_K_M 4.36 GB, Q5_K_M 5.07 GB.
 * **Time (reference run):** labelling the 808 public dialogues 14 min; one critic pass over ~1,300 records ~3 min
   (plus 5-10 min to start each 2-GPU server); SFT 39 min; preference pairs 7 min; ORPO 16 min; test generations 1-5 min
   per model; GGUF export ~3 min; LLM judge ~16 min.
-* **Troubleshooting multi-GPU jobs:** the 2-GPU servers use NCCL, which needs a working NVIDIA management library
-  (NVML). If `nvidia-smi` reports *Driver/library version mismatch* (typically after an automatic driver update without
-  a reboot), single-GPU work still runs but 2-GPU jobs fail until the machine is rebooted. The pipeline's GPU check
-  falls back to CUDA in that case.
+* **Troubleshooting a broken NVIDIA driver state:** if `nvidia-smi` reports *Driver/library version mismatch*
+  (typically after an automatic driver update without a reboot), the NVIDIA management library (NVML) is unavailable.
+  Then 2-GPU jobs fail (NCCL needs NVML) until the machine is rebooted, and training fails with
+  `nvmlInit_v2_() INTERNAL ASSERT FAILED` because Unsloth enables PyTorch's expandable memory segments; setting
+  `PYTORCH_ALLOC_CONF=expandable_segments:False` works around the latter. Single-GPU inference (vLLM, Ollama) keeps
+  working, and the pipeline's GPU check falls back to CUDA.
 
 ### Software and locked dependencies
 
@@ -663,6 +672,14 @@ FORCE=1 DATA_SOURCE=external GPUS=0,1 TRAIN_GPU=0 SERVE_GPU=1 VLLM_BIN=~/vllm-en
 * Stages are idempotent: finished ones are skipped, `FORCE=1` re-runs them, `STAGES="orpo eval"` runs a subset.
 * `DATA_SOURCE` = `api` (Claude via the Anthropic API), `external` (notes in `EXTERNAL_DIR`, default
   `data/external/claude_app`) or `local` (the local Qwen3-32B teacher only).
+
+**How these instructions were tested.** On the reference machine, a fresh `git clone` of this repository installed with
+`uv sync --locked --all-extras` (31 s from a warm uv cache), passed the unit tests, and ran the first command above end
+to end with a tiny training budget (`sft.max_steps=4`, `orpo.max_steps=2`): SFT, reuse of the committed preference
+pairs, ORPO, test generations for all six variants, llama.cpp build at the pinned tag, GGUF export, evaluation through
+Ollama, scoring and the report. The rebuilt four-phase data stage was run separately on a 30-note subset (one GPU, with
+a 7B stand-in for the 72B critic because the node's multi-GPU communication was down at the time) and passed
+`scripts/validate_dataset.py`. The LLM-judge stage was not part of these tests.
 
 ### Where the synthetic 70% comes from - pick one
 
@@ -771,6 +788,7 @@ scripts/vllm_server.sh stop orpo
 # 6. Export GGUF + Ollama Modelfile, then evaluate the quantized model through Ollama
 uv run python serving/export_gguf.py
 CUDA_VISIBLE_DEVICES=1 OLLAMA_VULKAN=0 OLLAMA_NO_CLOUD=1 ollama serve &
+until curl -sf http://127.0.0.1:11434/api/version >/dev/null; do sleep 1; done
 ollama create localclinical -f serving/ollama_modelfile
 uv run python training/evaluate.py generate --model gguf_q4
 
