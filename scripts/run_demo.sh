@@ -11,6 +11,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 MODEL_NAME="${MODEL_NAME:-localclinical}"
 export OLLAMA_HOST="${OLLAMA_HOST:-127.0.0.1:11434}"
+export OLLAMA_NO_CLOUD="${OLLAMA_NO_CLOUD:-1}"  # strictly local: disable Ollama's cloud features (remote inference)
+# On a shared multi-GPU machine, pin Ollama to one GPU: CUDA_VISIBLE_DEVICES=<id> OLLAMA_VULKAN=0 bash scripts/run_demo.sh
+# (Ollama's Vulkan backend ignores CUDA_VISIBLE_DEVICES).
 OLLAMA_BIN="${OLLAMA_BIN:-$(command -v ollama || echo "$ROOT/third_party/ollama/bin/ollama")}"
 mkdir -p outputs/logs
 

@@ -30,7 +30,7 @@ This notebook walks through every stage of the project on the artifacts produced
 3. The quality filter (rule-based clinical checks + LLM critic)
 4. The exact prompt format the model is trained and served with
 5. Training (QLoRA SFT -> ORPO): curves and resources
-6. Evaluation: base vs SFT vs SFT+ORPO (+ quantized GGUF)
+6. Evaluation: base model, prompting / RAG baselines, SFT, SFT+ORPO and the quantized GGUF
 7. Local inference through Ollama's OpenAI-compatible API
 
 Everything runs locally. Cells only *read* pipeline outputs unless you set `RUN_HEAVY = True`."""),
@@ -159,9 +159,11 @@ for ax, stage, key, title in ((axes[0], "sft", "loss", "SFT loss"), (axes[1], "o
     ax.legend(frameon=False)
 plt.tight_layout()
 plt.show()"""),
-    ("md", """## 6. Evaluation: base vs fine-tuned
+    ("md", """## 6. Evaluation: base model, baselines and fine-tuned models
 
-Reference-based metrics with bootstrap 95% CIs, reference-free metrics, and the independent LLM judge.
+Reference-based metrics with bootstrap 95% CIs, reference-free metrics, and the independent LLM judge, for the base
+model, two training-free baselines (2-shot prompting, BM25 retrieval of similar training notes), SFT, SFT+ORPO and the
+compressed GGUF.
 (`results/comparison_table.md` has the per-source breakdown.)"""),
     ("code", """table = Path("results/comparison_table.md").read_text()
 display(Markdown(table.split("## By data source")[0]))"""),

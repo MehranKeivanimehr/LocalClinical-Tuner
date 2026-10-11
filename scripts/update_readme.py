@@ -12,12 +12,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import html
 import json
+import random
 import re
 from pathlib import Path
 
 from clinical_tuner.config import add_config_args, load_config
-from clinical_tuner.utils import PROJECT_ROOT, resolve
+from clinical_tuner.utils import PROJECT_ROOT, read_jsonl, resolve
 
 
 def _load(path: Path):
@@ -46,14 +48,14 @@ def results_block(cfg) -> str:
         v = m.get(model, {}).get("by_task", {}).get(task, {}).get(key)
         return v["mean"] if isinstance(v, dict) else v
 
-    chain = [x for x in ("base", "sft", "orpo") if x in m]
+    chain = [x for x in ("base", "base_fewshot", "base_rag", "sft", "orpo") if x in m]
     if len(chain) > 1:
         for task, key, label in (("entities", "entity_f1_relaxed", "entity F1"),
                                  ("soap", "rougeL", "SOAP ROUGE-L"), ("summary", "rougeL", "summary ROUGE-L")):
             vals = [get(x, task, key) for x in chain]
             if all(v is not None for v in vals):
                 headline.append(f"{label} " + " → ".join(f"{v:.3f}" for v in vals))
-    names = {"base": "base", "sft": "SFT", "orpo": "SFT+ORPO"}
+    names = {"base": "base", "base_fewshot": "2-shot", "base_rag": "RAG", "sft": "SFT", "orpo": "SFT+ORPO"}
     judged = []
     for k, v in ((metrics.get("judge") or {}).get("pairwise") or {}).items():
         a, b = k.split("_vs_")
@@ -70,12 +72,63 @@ def results_block(cfg) -> str:
     figure = ""
     if (rdir / "figures" / "key_metrics_light.png").exists():
         figure = ('<picture>\n  <source media="(prefers-color-scheme: dark)" '
-                  'srcset="results/figures/key_metrics_dark.png">\n  <img alt="Key test-set metrics for base, SFT, '
-                  'SFT+ORPO and the Q4_K_M GGUF, with 95% bootstrap CIs" '
+                  'srcset="results/figures/key_metrics_dark.png">\n  <img alt="Key test-set metrics for the base model, '
+                  '2-shot prompting, RAG, SFT, SFT+ORPO and the Q4_K_M GGUF, with 95% bootstrap CIs" '
                   'src="results/figures/key_metrics_light.png">\n</picture>\n\n')
     return (intro.rstrip() + "\n\n" + figure + "Full per-source breakdown: [results/comparison_table.md](results/comparison_table.md); "
             "raw numbers: [results/metrics.json](results/metrics.json); side-by-side generations: "
             "[results/sample_outputs.md](results/sample_outputs.md).\n\n" + main)
+
+
+BEFORE_AFTER_ROWS = [  # (task, key, label, percent)
+    ("summary", "rougeL", "Summary ROUGE-L", False),
+    ("summary", "bertscore_f1", "Summary BERTScore F1", False),
+    ("soap", "rougeL", "SOAP note ROUGE-L", False),
+    ("soap", "bertscore_f1", "SOAP note BERTScore F1", False),
+    ("entities", "entity_f1_relaxed", "Entity extraction F1 (relaxed)", False),
+    ("entities", "entity_f1_strict", "Entity extraction F1 (strict)", False),
+    ("entities", "negation_accuracy", "Denied symptoms kept as denied", True),
+    ("summary", "length_compliance", "Summaries within 132 words (limit 120 + 10%)", True),
+    ("judge", "overall", "LLM-judge overall score (1-5)", False),
+]
+
+
+def before_after_block(cfg) -> str:
+    m = _load(resolve(cfg.project.results_dir) / "metrics.json")
+    if not m or "base" not in m.get("models", {}) or "orpo" not in m.get("models", {}):
+        return "_Run the evaluation to populate._"
+    cols = [c for c in ("base", "orpo", "gguf_q4") if c in m["models"]]
+
+    def val(model, task, key):
+        if task == "judge":
+            v = (m.get("judge") or {}).get("absolute", {}).get(model, {}).get(key)
+        else:
+            v = m["models"][model]["by_task"].get(task, {}).get(key)
+        return v["mean"] if isinstance(v, dict) else v
+
+    def fmt(v, pct):
+        return "n/a" if v is None else (f"{100 * v:.1f}%" if pct else f"{v:.3f}")
+
+    head = {"base": "**Before**: base Qwen2.5-7B-Instruct", "orpo": "**After**: fine-tuned (SFT+ORPO, 16-bit)",
+            "gguf_q4": "**After, compressed**: Q4_K_M GGUF, 4.4 GB (what the demo runs)"}
+    lines = ["| Metric (300 held-out test examples) | " + " | ".join(head[c] for c in cols) + " | Change |",
+             "|---|" + "---|" * (len(cols) + 1)]
+    for task, key, label, pct in BEFORE_AFTER_ROWS:
+        vals = [val(c, task, key) for c in cols]
+        b, a = vals[0], vals[1]
+        if b is None or a is None:
+            change = "n/a"
+        else:
+            d = a - b
+            change = f"{100 * d:+.1f} pts" if pct else (f"{d:+.3f} ({100 * d / b:+.0f}%)" if b else f"{d:+.3f}")
+        lines.append(f"| {label} | " + " | ".join(fmt(v, pct) for v in vals) + f" | {change} |")
+    sft_judge = val("sft", "judge", "overall") if "sft" in m["models"] else None
+    note = (f" The SFT-only model scores {sft_judge:.2f} with the judge (see [Reading the results](#reading-the-results))."
+            if sft_judge is not None else "")
+    lines.append("\nChange = after (16-bit) minus before. The judge was run on the 16-bit models only." + note +
+                 " Confidence intervals, the training-free baselines and the SFT-only model: "
+                 "[Full comparison](#full-comparison).")
+    return "\n".join(lines)
 
 
 def _val_name(tag: str) -> str:
@@ -114,6 +167,65 @@ def selection_block(cfg) -> str:
         pr = f"{100 * pr['win']:.0f}% / {100 * pr['tie']:.0f}% / {100 * pr['loss']:.0f}%" if pr else "-"
         lines.append(f"| {_val_name(tag)} | " + " | ".join(vals) + f" | {ab} | {pr} |")
     return "\n".join(lines)
+
+
+QUAL_MODELS = [("base", "Base model (before)"), ("sft", "Fine-tuned (SFT)"),
+               ("gguf_q4", "Compressed: SFT+ORPO, Q4_K_M GGUF (what the demo runs)")]
+
+
+def _entities_html(text: str) -> str:
+    from clinical_tuner.metrics import parse_entities_output
+
+    e = parse_entities_output(text)
+    if e is None:
+        return "<i>invalid JSON</i>"
+    sx = [html.escape(s.text) + (" <i>(denied)</i>" if s.negated else "") for s in e.symptoms]
+    meds = [html.escape(" ".join(x for x in (m.name, m.dose, m.frequency) if x)) for m in e.medications]
+    parts = [("Symptoms", sx), ("Diagnoses", [html.escape(d) for d in e.diagnoses]), ("Medications", meds),
+             ("Procedures / tests", [html.escape(p) for p in e.procedures])]
+    return "<br>".join(f"<b>{k}:</b> {'; '.join(v) if v else '-'}" for k, v in parts)
+
+
+def qualitative_block(cfg, max_note_words: int = 350) -> str:
+    """One randomly chosen (seeded) held-out test note per task, outputs side by side, scored against the reference."""
+    from clinical_tuner.metrics import entity_counts, micro_f1, parse_entities_output, rouge_l
+    from clinical_tuner.schemas import Entities
+
+    rdir = resolve(cfg.project.results_dir)
+    gens = {}
+    for tag, _ in QUAL_MODELS:
+        path = rdir / "generations" / f"{tag}.jsonl"
+        if not path.exists():
+            return "_Run the evaluation to populate._"
+        gens[tag] = {g["id"]: g["output"] for g in read_jsonl(path)}
+    test = read_jsonl(resolve(cfg.data.processed_dir) / "test.jsonl")
+    rng = random.Random(cfg.project.seed)
+    out = [f"One held-out test note per task, picked at random (seed {cfg.project.seed}) among notes under "
+           f"{max_note_words} words so the page stays readable - not cherry-picked. Each column is scored against the "
+           "reference answer (ROUGE-L for text, relaxed entity F1 for extraction). Entity JSON is shown in compact form."]
+    for task, title in (("summary", "Summary"), ("soap", "SOAP note"), ("entities", "Entity extraction")):
+        cands = sorted((r for r in test if r["task"] == task and len(r["note"].split()) <= max_note_words
+                        and all(r["id"] in g for g in gens.values())), key=lambda r: r["id"])
+        ex = rng.choice(cands)
+        meta = ", ".join(x for x in (ex["source"], ex.get("specialty"), (ex.get("style") or "").replace("_", " ")) if x)
+        out += ["", f"#### {title} - `{ex['encounter_id']}` ({meta})", "",
+                f"<details><summary>Source note ({len(ex['note'].split())} words) and reference answer</summary>", "",
+                "```text", ex["note"].strip(), "```", "", "Reference:", "", "```text", ex["reference"].strip(), "```",
+                "", "</details>", "", "<table>",
+                "<tr>" + "".join(f"<th>{label}</th>" for _, label in QUAL_MODELS) + "</tr>", "<tr>"]
+        scores = []
+        for tag, _ in QUAL_MODELS:
+            text = gens[tag][ex["id"]].strip()
+            if task == "entities":
+                cell = _entities_html(text)
+                f1 = micro_f1([entity_counts(parse_entities_output(text), Entities.model_validate(ex["gold_entities"]))])
+                scores.append(f"entity F1 {f1:.2f}")
+            else:
+                cell = html.escape(text).replace("\n", "<br>")
+                scores.append(f"ROUGE-L {rouge_l([text], [ex['reference']])[0]:.2f}")
+            out.append(f'<td valign="top">{cell}</td>')
+        out += ["</tr>", "<tr>" + "".join(f"<td><i>{sc}</i></td>" for sc in scores) + "</tr>", "</table>"]
+    return "\n".join(out)
 
 
 def data_block(cfg) -> str:
@@ -162,7 +274,7 @@ def hardware_block(cfg) -> str:
             rows.append(f"| {stage} | {t.get('gpu', '?')} | {t.get('peak_reserved_gb', '?')} GB | "
                         f"{t['train_seconds'] / 60:.0f} min | {n:,} {'examples' if stage == 'SFT' else 'pairs'}, "
                         f"{t['global_steps']} steps |")
-    lines = ["Measured on this project's reference run (one GPU per training stage):\n",
+    lines = ["Measured training runs of the reference run (one GPU per stage):\n",
              "| Stage | GPU | Peak VRAM (reserved) | Wall time | Workload |", "|---|---|---|---|---|", *rows]
     manifest = next(iter(sorted(resolve(cfg.export.output_dir).glob("*-manifest.json"))), None)
     if manifest:
@@ -178,12 +290,7 @@ def hardware_block(cfg) -> str:
         fit = (f"* **Training** peaked at {peak or 0:.1f} GB with the default batch size; on a 24 GB GPU use "
                "`--set sft.per_device_batch_size=1 --set sft.gradient_accumulation_steps=16` (same effective "
                "batch) and the matching `orpo.*` settings.\n")
-    lines.append(
-        "\n" + fit +
-        "* **Inference** of the Q4_K_M GGUF needs ~6 GB of GPU memory (or runs on CPU / Apple Silicon via Ollama).\n"
-        "* **Data generation and judging** use larger local models: the Qwen3-32B teacher/critic and the Qwen2.5-72B "
-        "judge run in FP8 on 2×48 GB GPUs. With less hardware, point the `teacher`/`judge` endpoints at smaller "
-        "models (e.g. Qwen3-14B) - the pipeline only needs OpenAI-compatible URLs.")
+    lines.append("\n" + fit.rstrip())
     return "\n".join(lines)
 
 
@@ -196,6 +303,10 @@ def main() -> None:
     text = _replace(text, "RESULTS", results_block(cfg))
     text = _replace(text, "HARDWARE", hardware_block(cfg))
     text = _replace(text, "DATA", data_block(cfg))
+    if "<!-- BEFORE_AFTER:START -->" in text:
+        text = _replace(text, "BEFORE_AFTER", before_after_block(cfg))
+    if "<!-- QUALITATIVE:START -->" in text:
+        text = _replace(text, "QUALITATIVE", qualitative_block(cfg))
     if "<!-- SELECTION:START -->" in text:
         text = _replace(text, "SELECTION", selection_block(cfg))
     readme.write_text(text)

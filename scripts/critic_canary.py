@@ -61,9 +61,14 @@ async def main_async(args: argparse.Namespace) -> None:
     cfg = load_config(args.config, args.overrides)
     out_dir = resolve(cfg.data.filtered_dir)
     cache = {row["key"].split(":")[0]: row for row in read_jsonl(out_dir / "critic_cache.jsonl")}  # any version
-    pool = [r for r in read_jsonl(resolve(cfg.data.raw_dir) / "external.jsonl") if r["encounter_id"] in cache
+    raw = resolve(cfg.data.raw_dir)
+    synthetic = [r for name in ("synthetic.jsonl", "external.jsonl") if (raw / name).exists()  # API or imported notes
+                 for r in read_jsonl(raw / name)]
+    pool = [r for r in synthetic if r["encounter_id"] in cache
             and CriticVerdict.model_validate(cache[r["encounter_id"]]["verdict"]).decision(
                 cfg.data.quality.critic.min_overall, cfg.data.quality.critic.min_dimension)[0]]
+    if not pool:
+        raise SystemExit("No critic-accepted synthetic records yet - run data/quality_filter.py first")
     rng = random.Random(args.seed)
     picked = rng.sample(pool, min(args.n, len(pool)))
     kinds = ["hallucinated_med_summary", "hallucinated_med_plan", "flipped_negation", "dropped_diagnosis"]

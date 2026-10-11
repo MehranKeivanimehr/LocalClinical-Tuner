@@ -221,6 +221,8 @@ class EvalCfg(_Strict):
     judge_per_task: int = 50
     judge_pairs: list[tuple[str, str]] = Field(default_factory=lambda: [("orpo", "base"), ("orpo", "sft"), ("sft", "base")])
     n_sample_outputs: int = 2
+    baselines: list[str] = Field(default_factory=list)  # e.g. base_fewshot, base_rag (training-free baselines)
+    baseline_examples: int = 2  # worked examples per prompt for the few-shot / RAG baselines
 
 
 class ExportCfg(_Strict):

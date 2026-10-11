@@ -27,10 +27,8 @@ wandb/
 data/raw/*
 !data/raw/.gitkeep
 data/filtered/*.jsonl
-data/processed/*
-!data/processed/.gitkeep
-!data/processed/split_stats.json
-!data/processed/pref_stats.json
+# data/processed (the exact train/val/pref/test splits of the reference run, ~24 MB) is committed so training and
+# evaluation can be reproduced without regenerating data; intermediate raw/filtered files stay local.
 
 # Raw judge transcripts / generations can be large; metrics + tables are committed
 results/generations/

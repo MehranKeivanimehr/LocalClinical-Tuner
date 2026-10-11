@@ -45,8 +45,8 @@ class Teacher:
             await self.primary.chat([{"role": "user", "content": "Reply with the single word OK."}], max_tokens=16)
             log.info("Primary teacher %s is reachable.", self.primary.cfg.identity)
         except ProviderUnavailableError as e:
-            log.error("Primary teacher unavailable (%s) -> using fallback %s for all requests.", e,
-                      self.fallback.cfg.identity if self.fallback else None)
+            log.warning("Primary teacher unavailable (%s) -> using fallback %s for all requests.", e,
+                        self.fallback.cfg.identity if self.fallback else None)
             self.primary = None
         except Exception as e:  # noqa: BLE001
             log.warning("Primary teacher preflight failed (%r); will still try it per request.", e)

@@ -193,6 +193,8 @@ evaluation:
   judge_per_task: 50                       # 150 test items judged; pairwise judging runs in both orders
   judge_pairs: [[orpo, base], [orpo, sft], [sft, base]]
   n_sample_outputs: 2
+  baselines: [base_fewshot, base_rag]      # training-free baselines on the base model (generate --prompting ...)
+  baseline_examples: 2                     # worked examples (from the TRAIN split) per prompt
 
 export:
   merged_model: outputs/orpo/merged

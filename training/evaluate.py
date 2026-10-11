@@ -59,7 +59,15 @@ from clinical_tuner.utils import append_jsonl, read_json, read_jsonl, resolve, s
 
 log = logging.getLogger("evaluate")
 
-DISPLAY = {"base": "Base (Qwen2.5-7B-Instruct)", "sft": "SFT", "orpo": "SFT + ORPO", "gguf_q4": "SFT + ORPO (Q4_K_M GGUF)"}
+DISPLAY = {"base": "Base (Qwen2.5-7B-Instruct)", "base_fewshot": "Base + 2-shot prompting",
+           "base_rag": "Base + RAG (2 retrieved examples)", "sft": "SFT", "orpo": "SFT + ORPO",
+           "gguf_q4": "SFT + ORPO (Q4_K_M GGUF)"}
+
+
+def model_order(cfg: Config) -> list[str]:
+    """Report column order: base model, training-free baselines, fine-tuned models, quantized export."""
+    first, rest = cfg.evaluation.models[:1], cfg.evaluation.models[1:]
+    return [*first, *cfg.evaluation.baselines, *rest, "gguf_q4"]
 
 
 def results_dir(cfg: Config) -> Path:
@@ -100,7 +108,8 @@ async def generate_openai(cfg: Config, tag: str, endpoint: str, rows: list[dict[
     async def one(r: dict[str, Any]) -> None:
         text = (await client.chat(r["messages"], temperature=ec.temperature, top_p=1.0, max_tokens=ec.max_tokens,
                                   seed=cfg.project.seed, extra_body=ec.extra_body))[0]
-        append_jsonl(out, {"id": r["id"], "task": r["task"], "source": r["source"], "output": text})
+        append_jsonl(out, {"id": r["id"], "task": r["task"], "source": r["source"], "output": text,
+                           **({"context_ids": r["context_ids"]} if "context_ids" in r else {})})
 
     log.info("Generating %d/%d outputs for %s via endpoint %r", len(pending), len(rows), tag, endpoint)
     res = await gather_with_progress(pending, one, desc=f"generate:{tag}")
@@ -108,6 +117,25 @@ async def generate_openai(cfg: Config, tag: str, endpoint: str, rows: list[dict[
     await client.close()
     if errs:
         raise SystemExit(f"{len(errs)} generation errors, e.g. {errs[0]!r} (re-run to resume)")
+
+
+def with_prompting(cfg: Config, rows: list[dict[str, Any]], prompting: str) -> list[dict[str, Any]]:
+    """Rewrite the prompts of ``rows`` for a training-free baseline (worked examples from the TRAIN split)."""
+    if prompting == "zero":
+        return rows
+    from clinical_tuner.baselines import Retriever, fixed_examples, messages_with_examples
+
+    train = read_jsonl(resolve(cfg.data.processed_dir) / "train.jsonl")
+    k = cfg.evaluation.baseline_examples
+    retriever = Retriever(train) if prompting == "rag" else None
+    fixed = {t: fixed_examples(train, t, k, cfg.project.seed) for t in TASK_INSTRUCTIONS} if not retriever else {}
+    out = []
+    for r in rows:
+        exs = retriever.examples(r["task"], r["note"], k) if retriever else fixed[r["task"]]
+        assert not {e["encounter_id"] for e in exs} & {r["encounter_id"]}, "test note retrieved from train"
+        out.append({**r, "messages": messages_with_examples(r["task"], r["note"], exs),
+                    "context_ids": [e["id"] for e in exs]})
+    return out
 
 
 def generate_hf(cfg: Config, tag: str, model_path: str, rows: list[dict[str, Any]], batch_size: int) -> None:
@@ -187,7 +215,8 @@ def cmd_score(cfg: Config, args: argparse.Namespace) -> None:
     import torch
 
     test = {r["id"]: r for r in load_test(cfg)}
-    models = args.models or [t for t in [*cfg.evaluation.models, "gguf_q4"] if gen_path(cfg, t).exists()]
+    models = args.models or [t for t in [*cfg.evaluation.models, *cfg.evaluation.baselines, "gguf_q4"]
+                             if gen_path(cfg, t).exists()]
     out: dict[str, Any] = {"meta": {
         "date": dt.date.today().isoformat(), "split": SPLIT, "test_examples": len(test),
         "test_encounters": len({r["encounter_id"] for r in test.values()}),
@@ -275,7 +304,8 @@ async def cmd_judge(cfg: Config, args: argparse.Namespace) -> None:
     jdir = judge_dir(cfg)
     jdir.mkdir(parents=True, exist_ok=True)
     pairs = judge_pairs(cfg, args)
-    models = [m for m in (args.models or cfg.evaluation.models) if gen_path(cfg, m).exists()]
+    models = [m for m in (args.models or [*cfg.evaluation.models, *cfg.evaluation.baselines])
+              if gen_path(cfg, m).exists()]
     gens = {m: {g["id"]: g["output"] for g in read_jsonl(gen_path(cfg, m))} for m in models}
     client = make_client(cfg.endpoint(cfg.evaluation.judge_endpoint))
     judge_id = client.cfg.identity
@@ -336,7 +366,7 @@ def summarize_judge(cfg: Config, pairs: list[tuple[str, str]]) -> dict[str, Any]
     if (jdir / "absolute.jsonl").exists():
         rows = [r for r in read_jsonl(jdir / "absolute.jsonl") if isinstance(r.get("overall"), int)]
         summary["judge_model"] = rows[0]["judge"] if rows else None
-        order = {m: k for k, m in enumerate(cfg.evaluation.models)}
+        order = {m: k for k, m in enumerate(model_order(cfg))}
         for m in sorted({r["model"] for r in rows}, key=lambda x: (order.get(x, len(order)), x)):
             mr = [r for r in rows if r["model"] == m]
             summary["absolute"][m] = {k: _mean_ci([float(r[k]) for r in mr], cfg) for k in
@@ -398,7 +428,7 @@ ROWS = [  # (task, metric, label, is_percent, higher_is_better)
     ("summary", "rougeL", "Summary ROUGE-L", False, True),
     ("summary", "bertscore_f1", "Summary BERTScore F1", False, True),
     ("summary", "key_entity_recall", "Summary key-entity coverage", True, True),
-    ("summary", "length_compliance", "Summary length compliance", True, True),
+    ("summary", "length_compliance", "Summary length ≤ 132 words (120 + 10%)", True, True),
     ("summary", "med_hallucination_rate", "Summary medication hallucination", True, False),
     ("soap", "rougeL", "SOAP ROUGE-L", False, True),
     ("soap", "bertscore_f1", "SOAP BERTScore F1", False, True),
@@ -417,7 +447,7 @@ def cmd_report(cfg: Config, args: argparse.Namespace) -> None:
     if judge_dir(cfg).exists():  # refresh the judge summary from the raw verdicts (and the configured pairs)
         summarize_judge(cfg, judge_pairs(cfg, args))
     metrics = read_json(rdir / "metrics.json")
-    models = [m for m in [*cfg.evaluation.models, "gguf_q4"] if m in metrics["models"]]
+    models = [m for m in model_order(cfg) if m in metrics["models"]]
     meta = metrics["meta"]
     L = ["# Results: base vs fine-tuned\n",
          f"Test set: **{meta['test_examples']} examples** from {meta['test_encounters']} held-out encounters "
@@ -478,7 +508,7 @@ def cmd_report(cfg: Config, args: argparse.Namespace) -> None:
 
     # sample outputs
     test = {r["id"]: r for r in load_test(cfg)}
-    gens = {m: {g["id"]: g["output"] for g in read_jsonl(gen_path(cfg, m))} for m in cfg.evaluation.models
+    gens = {m: {g["id"]: g["output"] for g in read_jsonl(gen_path(cfg, m))} for m in model_order(cfg)
             if gen_path(cfg, m).exists()}
     rng = random.Random(cfg.project.seed)
     S = ["# Sample outputs (held-out test set)\n",
@@ -509,6 +539,8 @@ def main() -> None:
     g.add_argument("--batch-size", type=int, default=16)
     g.add_argument("--limit", type=int, default=None)
     g.add_argument("--split", default="test", choices=["test", "val"], help="val is for model selection")
+    g.add_argument("--prompting", default="zero", choices=["zero", "fewshot", "rag"],
+                   help="training-free baselines: fixed worked examples (fewshot) or BM25-retrieved ones (rag)")
     s = sub.add_parser("score")
     s.add_argument("--models", nargs="*", default=None)
     s.add_argument("--split", default="test", choices=["test", "val"])
@@ -523,8 +555,8 @@ def main() -> None:
     global SPLIT
     SPLIT = getattr(args, "split", "test")
     if args.cmd == "generate":
-        rows = load_test(cfg, args.limit)
-        tag = args.tag or args.model
+        rows = with_prompting(cfg, load_test(cfg, args.limit), args.prompting)
+        tag = args.tag or (args.model if args.prompting == "zero" else f"{args.model}_{args.prompting}")
         if args.backend == "hf":
             generate_hf(cfg, tag, args.model_path or args.model, rows, args.batch_size)
         else:

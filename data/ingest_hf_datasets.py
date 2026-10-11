@@ -296,8 +296,8 @@ async def main_async(args: argparse.Namespace) -> None:
         cleaning_rejects += rej
         log.info("%s: loaded %d, %d pass cleaning", src.name, len(rows), len(kept))
 
-    syn_path = raw_dir / "synthetic.jsonl"
-    synthetic_notes = [r["note"] for r in read_jsonl(syn_path)] if syn_path.exists() else []
+    synthetic_notes = [r["note"] for name in ("synthetic.jsonl", "external.jsonl")  # API-generated or imported
+                       if (raw_dir / name).exists() for r in read_jsonl(raw_dir / name)]
     if not synthetic_notes:
         log.warning("No synthetic notes found yet; cross-source dedup will be repeated in quality_filter.py")
     candidates, dup_rejects = deduplicate(candidates, synthetic_notes, cfg.data.hf.cleaning.near_duplicate_jaccard,

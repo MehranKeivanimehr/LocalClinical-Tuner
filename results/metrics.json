@@ -1,6 +1,6 @@
 {
   "meta": {
-    "date": "2026-10-10",
+    "date": "2026-10-11",
     "split": "test",
     "test_examples": 300,
     "test_encounters": 100,
@@ -1514,6 +1514,1016 @@
             "f1_medications": 0.9694,
             "f1_procedures": 0.7727,
             "negation_accuracy": 1.0,
+            "json_valid_rate": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 70
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 70
+            }
+          }
+        }
+      }
+    },
+    "base_fewshot": {
+      "n": 300,
+      "by_task": {
+        "summary": {
+          "rougeL": {
+            "mean": 0.4267,
+            "ci95": [
+              0.4089,
+              0.4451
+            ],
+            "n": 100
+          },
+          "bertscore_f1": {
+            "mean": 0.4541,
+            "ci95": [
+              0.4328,
+              0.475
+            ],
+            "n": 100
+          },
+          "key_entity_recall": {
+            "mean": 0.7534,
+            "ci95": [
+              0.7039,
+              0.8025
+            ],
+            "n": 100
+          },
+          "med_hallucination_rate": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "n": 100
+          },
+          "length_compliance": {
+            "mean": 0.89,
+            "ci95": [
+              0.82,
+              0.95
+            ],
+            "n": 100
+          }
+        },
+        "soap": {
+          "rougeL": {
+            "mean": 0.6347,
+            "ci95": [
+              0.6044,
+              0.6632
+            ],
+            "n": 100
+          },
+          "bertscore_f1": {
+            "mean": 0.5753,
+            "ci95": [
+              0.5513,
+              0.6002
+            ],
+            "n": 100
+          },
+          "key_entity_recall": {
+            "mean": 0.9535,
+            "ci95": [
+              0.928,
+              0.9745
+            ],
+            "n": 100
+          },
+          "med_hallucination_rate": {
+            "mean": 0.03,
+            "ci95": [
+              0.0,
+              0.07
+            ],
+            "n": 100
+          },
+          "soap_structure": {
+            "mean": 0.9975,
+            "ci95": [
+              0.9925,
+              1.0
+            ],
+            "n": 100
+          }
+        },
+        "entities": {
+          "entity_f1_strict": {
+            "mean": 0.6102,
+            "ci95": [
+              0.5772,
+              0.6401
+            ],
+            "n": 100
+          },
+          "entity_f1_relaxed": {
+            "mean": 0.6774,
+            "ci95": [
+              0.6506,
+              0.7028
+            ],
+            "n": 100
+          },
+          "f1_symptoms": 0.6618,
+          "f1_diagnoses": 0.7325,
+          "f1_medications": 0.8997,
+          "f1_procedures": 0.4173,
+          "negation_accuracy": 0.9863,
+          "json_valid_rate": {
+            "mean": 1.0,
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "n": 100
+          },
+          "med_hallucination_rate": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "n": 100
+          }
+        }
+      },
+      "by_source": {
+        "aci-bench": {
+          "summary": {
+            "rougeL": {
+              "mean": 0.461,
+              "ci95": [
+                0.4399,
+                0.4819
+              ],
+              "n": 4
+            },
+            "bertscore_f1": {
+              "mean": 0.5295,
+              "ci95": [
+                0.4972,
+                0.5639
+              ],
+              "n": 4
+            },
+            "key_entity_recall": {
+              "mean": 0.8036,
+              "ci95": [
+                0.6071,
+                1.0
+              ],
+              "n": 4
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 4
+            },
+            "length_compliance": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 4
+            }
+          },
+          "soap": {
+            "rougeL": {
+              "mean": 0.4056,
+              "ci95": [
+                0.3426,
+                0.4749
+              ],
+              "n": 4
+            },
+            "bertscore_f1": {
+              "mean": 0.4339,
+              "ci95": [
+                0.3935,
+                0.4743
+              ],
+              "n": 4
+            },
+            "key_entity_recall": {
+              "mean": 0.9018,
+              "ci95": [
+                0.8036,
+                1.0
+              ],
+              "n": 4
+            },
+            "med_hallucination_rate": {
+              "mean": 0.25,
+              "ci95": [
+                0.0,
+                0.75
+              ],
+              "n": 4
+            },
+            "soap_structure": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 4
+            }
+          },
+          "entities": {
+            "entity_f1_strict": {
+              "mean": 0.4419,
+              "ci95": [
+                0.1429,
+                0.6107
+              ],
+              "n": 4
+            },
+            "entity_f1_relaxed": {
+              "mean": 0.5116,
+              "ci95": [
+                0.2745,
+                0.6569
+              ],
+              "n": 4
+            },
+            "f1_symptoms": 0.3043,
+            "f1_diagnoses": 0.8,
+            "f1_medications": 0.8333,
+            "f1_procedures": 0.6154,
+            "negation_accuracy": 1.0,
+            "json_valid_rate": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 4
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 4
+            }
+          }
+        },
+        "mts-dialog": {
+          "summary": {
+            "rougeL": {
+              "mean": 0.4676,
+              "ci95": [
+                0.4203,
+                0.5145
+              ],
+              "n": 26
+            },
+            "bertscore_f1": {
+              "mean": 0.547,
+              "ci95": [
+                0.4946,
+                0.5969
+              ],
+              "n": 26
+            },
+            "key_entity_recall": {
+              "mean": 0.8711,
+              "ci95": [
+                0.7555,
+                0.9626
+              ],
+              "n": 26
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 26
+            },
+            "length_compliance": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 26
+            }
+          },
+          "soap": {
+            "rougeL": {
+              "mean": 0.4741,
+              "ci95": [
+                0.4262,
+                0.5216
+              ],
+              "n": 26
+            },
+            "bertscore_f1": {
+              "mean": 0.5749,
+              "ci95": [
+                0.5282,
+                0.6234
+              ],
+              "n": 26
+            },
+            "key_entity_recall": {
+              "mean": 0.9346,
+              "ci95": [
+                0.8692,
+                0.9846
+              ],
+              "n": 26
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 26
+            },
+            "soap_structure": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 26
+            }
+          },
+          "entities": {
+            "entity_f1_strict": {
+              "mean": 0.487,
+              "ci95": [
+                0.3727,
+                0.5849
+              ],
+              "n": 26
+            },
+            "entity_f1_relaxed": {
+              "mean": 0.5855,
+              "ci95": [
+                0.4862,
+                0.6755
+              ],
+              "n": 26
+            },
+            "f1_symptoms": 0.5575,
+            "f1_diagnoses": 0.7143,
+            "f1_medications": 0.7857,
+            "f1_procedures": 0.4828,
+            "negation_accuracy": 0.9625,
+            "json_valid_rate": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 26
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 26
+            }
+          }
+        },
+        "synthetic": {
+          "summary": {
+            "rougeL": {
+              "mean": 0.4096,
+              "ci95": [
+                0.3926,
+                0.4268
+              ],
+              "n": 70
+            },
+            "bertscore_f1": {
+              "mean": 0.4153,
+              "ci95": [
+                0.3955,
+                0.4336
+              ],
+              "n": 70
+            },
+            "key_entity_recall": {
+              "mean": 0.7068,
+              "ci95": [
+                0.6548,
+                0.7567
+              ],
+              "n": 70
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 70
+            },
+            "length_compliance": {
+              "mean": 0.8429,
+              "ci95": [
+                0.7429,
+                0.9143
+              ],
+              "n": 70
+            }
+          },
+          "soap": {
+            "rougeL": {
+              "mean": 0.7074,
+              "ci95": [
+                0.6853,
+                0.7298
+              ],
+              "n": 70
+            },
+            "bertscore_f1": {
+              "mean": 0.5836,
+              "ci95": [
+                0.5557,
+                0.6121
+              ],
+              "n": 70
+            },
+            "key_entity_recall": {
+              "mean": 0.9634,
+              "ci95": [
+                0.9355,
+                0.9822
+              ],
+              "n": 70
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0286,
+              "ci95": [
+                0.0,
+                0.0714
+              ],
+              "n": 70
+            },
+            "soap_structure": {
+              "mean": 0.9964,
+              "ci95": [
+                0.9893,
+                1.0
+              ],
+              "n": 70
+            }
+          },
+          "entities": {
+            "entity_f1_strict": {
+              "mean": 0.6316,
+              "ci95": [
+                0.6011,
+                0.6623
+              ],
+              "n": 70
+            },
+            "entity_f1_relaxed": {
+              "mean": 0.6946,
+              "ci95": [
+                0.6692,
+                0.7191
+              ],
+              "n": 70
+            },
+            "f1_symptoms": 0.694,
+            "f1_diagnoses": 0.7319,
+            "f1_medications": 0.9068,
+            "f1_procedures": 0.4077,
+            "negation_accuracy": 0.99,
+            "json_valid_rate": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 70
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 70
+            }
+          }
+        }
+      }
+    },
+    "base_rag": {
+      "n": 300,
+      "by_task": {
+        "summary": {
+          "rougeL": {
+            "mean": 0.4536,
+            "ci95": [
+              0.4351,
+              0.4713
+            ],
+            "n": 100
+          },
+          "bertscore_f1": {
+            "mean": 0.4817,
+            "ci95": [
+              0.4604,
+              0.503
+            ],
+            "n": 100
+          },
+          "key_entity_recall": {
+            "mean": 0.7552,
+            "ci95": [
+              0.7096,
+              0.8064
+            ],
+            "n": 100
+          },
+          "med_hallucination_rate": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "n": 100
+          },
+          "length_compliance": {
+            "mean": 0.8,
+            "ci95": [
+              0.72,
+              0.87
+            ],
+            "n": 100
+          }
+        },
+        "soap": {
+          "rougeL": {
+            "mean": 0.6766,
+            "ci95": [
+              0.6417,
+              0.7067
+            ],
+            "n": 100
+          },
+          "bertscore_f1": {
+            "mean": 0.6596,
+            "ci95": [
+              0.6333,
+              0.6849
+            ],
+            "n": 100
+          },
+          "key_entity_recall": {
+            "mean": 0.9606,
+            "ci95": [
+              0.9367,
+              0.9796
+            ],
+            "n": 100
+          },
+          "med_hallucination_rate": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "n": 100
+          },
+          "soap_structure": {
+            "mean": 1.0,
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "n": 100
+          }
+        },
+        "entities": {
+          "entity_f1_strict": {
+            "mean": 0.6786,
+            "ci95": [
+              0.645,
+              0.7079
+            ],
+            "n": 100
+          },
+          "entity_f1_relaxed": {
+            "mean": 0.7379,
+            "ci95": [
+              0.7108,
+              0.763
+            ],
+            "n": 100
+          },
+          "f1_symptoms": 0.726,
+          "f1_diagnoses": 0.7649,
+          "f1_medications": 0.9251,
+          "f1_procedures": 0.5607,
+          "negation_accuracy": 0.9956,
+          "json_valid_rate": {
+            "mean": 1.0,
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "n": 100
+          },
+          "med_hallucination_rate": {
+            "mean": 0.0,
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "n": 100
+          }
+        }
+      },
+      "by_source": {
+        "aci-bench": {
+          "summary": {
+            "rougeL": {
+              "mean": 0.4754,
+              "ci95": [
+                0.3979,
+                0.5308
+              ],
+              "n": 4
+            },
+            "bertscore_f1": {
+              "mean": 0.5178,
+              "ci95": [
+                0.434,
+                0.5769
+              ],
+              "n": 4
+            },
+            "key_entity_recall": {
+              "mean": 0.6071,
+              "ci95": [
+                0.4464,
+                0.875
+              ],
+              "n": 4
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 4
+            },
+            "length_compliance": {
+              "mean": 0.75,
+              "ci95": [
+                0.25,
+                1.0
+              ],
+              "n": 4
+            }
+          },
+          "soap": {
+            "rougeL": {
+              "mean": 0.4666,
+              "ci95": [
+                0.3471,
+                0.5852
+              ],
+              "n": 4
+            },
+            "bertscore_f1": {
+              "mean": 0.5571,
+              "ci95": [
+                0.4361,
+                0.678
+              ],
+              "n": 4
+            },
+            "key_entity_recall": {
+              "mean": 0.9018,
+              "ci95": [
+                0.8036,
+                1.0
+              ],
+              "n": 4
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 4
+            },
+            "soap_structure": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 4
+            }
+          },
+          "entities": {
+            "entity_f1_strict": {
+              "mean": 0.2316,
+              "ci95": [
+                0.1875,
+                0.2933
+              ],
+              "n": 4
+            },
+            "entity_f1_relaxed": {
+              "mean": 0.4,
+              "ci95": [
+                0.2353,
+                0.5068
+              ],
+              "n": 4
+            },
+            "f1_symptoms": 0.3448,
+            "f1_diagnoses": 0.4615,
+            "f1_medications": 0.8,
+            "f1_procedures": 0.2857,
+            "negation_accuracy": 1.0,
+            "json_valid_rate": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 4
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 4
+            }
+          }
+        },
+        "mts-dialog": {
+          "summary": {
+            "rougeL": {
+              "mean": 0.4749,
+              "ci95": [
+                0.4296,
+                0.5215
+              ],
+              "n": 26
+            },
+            "bertscore_f1": {
+              "mean": 0.5685,
+              "ci95": [
+                0.5257,
+                0.6121
+              ],
+              "n": 26
+            },
+            "key_entity_recall": {
+              "mean": 0.8457,
+              "ci95": [
+                0.7255,
+                0.9467
+              ],
+              "n": 26
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 26
+            },
+            "length_compliance": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 26
+            }
+          },
+          "soap": {
+            "rougeL": {
+              "mean": 0.467,
+              "ci95": [
+                0.4103,
+                0.5227
+              ],
+              "n": 26
+            },
+            "bertscore_f1": {
+              "mean": 0.5737,
+              "ci95": [
+                0.5188,
+                0.6245
+              ],
+              "n": 26
+            },
+            "key_entity_recall": {
+              "mean": 0.9587,
+              "ci95": [
+                0.8913,
+                1.0
+              ],
+              "n": 26
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 26
+            },
+            "soap_structure": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 26
+            }
+          },
+          "entities": {
+            "entity_f1_strict": {
+              "mean": 0.4573,
+              "ci95": [
+                0.3376,
+                0.5978
+              ],
+              "n": 26
+            },
+            "entity_f1_relaxed": {
+              "mean": 0.6131,
+              "ci95": [
+                0.5028,
+                0.7317
+              ],
+              "n": 26
+            },
+            "f1_symptoms": 0.5953,
+            "f1_diagnoses": 0.7826,
+            "f1_medications": 0.64,
+            "f1_procedures": 0.5,
+            "negation_accuracy": 1.0,
+            "json_valid_rate": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 26
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 26
+            }
+          }
+        },
+        "synthetic": {
+          "summary": {
+            "rougeL": {
+              "mean": 0.4444,
+              "ci95": [
+                0.4258,
+                0.4625
+              ],
+              "n": 70
+            },
+            "bertscore_f1": {
+              "mean": 0.4474,
+              "ci95": [
+                0.4243,
+                0.4684
+              ],
+              "n": 70
+            },
+            "key_entity_recall": {
+              "mean": 0.7301,
+              "ci95": [
+                0.6777,
+                0.7827
+              ],
+              "n": 70
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 70
+            },
+            "length_compliance": {
+              "mean": 0.7286,
+              "ci95": [
+                0.6286,
+                0.8286
+              ],
+              "n": 70
+            }
+          },
+          "soap": {
+            "rougeL": {
+              "mean": 0.7665,
+              "ci95": [
+                0.7492,
+                0.7837
+              ],
+              "n": 70
+            },
+            "bertscore_f1": {
+              "mean": 0.6974,
+              "ci95": [
+                0.6725,
+                0.7234
+              ],
+              "n": 70
+            },
+            "key_entity_recall": {
+              "mean": 0.9646,
+              "ci95": [
+                0.9463,
+                0.9828
+              ],
+              "n": 70
+            },
+            "med_hallucination_rate": {
+              "mean": 0.0,
+              "ci95": [
+                0.0,
+                0.0
+              ],
+              "n": 70
+            },
+            "soap_structure": {
+              "mean": 1.0,
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "n": 70
+            }
+          },
+          "entities": {
+            "entity_f1_strict": {
+              "mean": 0.721,
+              "ci95": [
+                0.6992,
+                0.745
+              ],
+              "n": 70
+            },
+            "entity_f1_relaxed": {
+              "mean": 0.7644,
+              "ci95": [
+                0.7431,
+                0.7864
+              ],
+              "n": 70
+            },
+            "f1_symptoms": 0.766,
+            "f1_diagnoses": 0.772,
+            "f1_medications": 0.9399,
+            "f1_procedures": 0.5709,
+            "negation_accuracy": 0.9949,
             "json_valid_rate": {
               "mean": 1.0,
               "ci95": [

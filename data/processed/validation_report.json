@@ -1,0 +1,47 @@
+{
+  "ok": true,
+  "errors": [],
+  "warnings": [],
+  "stats": {
+    "near_duplicate_test_leaks": 0,
+    "encounters_per_split": {
+      "train": 725,
+      "val": 25,
+      "pref": 150,
+      "test": 100
+    },
+    "prompt_mismatches": 0,
+    "reference_errors": 0,
+    "ungrounded_entity_examples": 0,
+    "phi_notes": 0,
+    "synthetic_fraction": 0.7,
+    "sources": {
+      "aci-bench": 45,
+      "mts-dialog": 255,
+      "synthetic": 700
+    },
+    "preference_pairs": {
+      "pref_pairs_train.jsonl": {
+        "n": 426,
+        "kinds": {
+          "on_policy": 262,
+          "hard_negative:dropped_plan": 37,
+          "hard_negative:hallucinated_medication": 58,
+          "hard_negative:flipped_negation": 22,
+          "hard_negative:dropped_diagnosis": 13,
+          "hard_negative:wrong_section": 34
+        }
+      },
+      "pref_pairs_val.jsonl": {
+        "n": 24,
+        "kinds": {
+          "on_policy": 13,
+          "hard_negative:hallucinated_medication": 5,
+          "hard_negative:dropped_plan": 3,
+          "hard_negative:dropped_diagnosis": 2,
+          "hard_negative:flipped_negation": 1
+        }
+      }
+    }
+  }
+}

@@ -32,6 +32,18 @@ The patient is experiencing body aches and pain. They report a history of heroin
 The 35-year-old male presented with complaints of body aches and pain, reporting a history of heroin use during detoxification. He mentioned difficulty sleeping and eating for about a year. The patient also reported feeling chilled and having a fever along with some diarrhea. The assessment suggests acute symptoms possibly related to his detoxification process. The plan includes monitoring his symptoms and providing supportive care.
 ```
 
+**Base + 2-shot prompting**
+
+```text
+A 35-year-old male, who reports a history of heroin use and is currently detoxing, presents with body aches, pain, insomnia, and anorexia. He also reports a fever, chills, and diarrhea. The assessment includes acute withdrawal symptoms. The plan involves supportive care and monitoring for complications during detoxification.
+```
+
+**Base + RAG (2 retrieved examples)**
+
+```text
+The patient, a male, presents with body aches and pain, reporting a history of heroin use during detoxification. He has been using for approximately a year and is experiencing insomnia, poor appetite, fever, chills, and diarrhea. The assessment suggests possible withdrawal symptoms. The plan involves managing symptoms and monitoring for complications.
+```
+
 **SFT**
 
 ```text
@@ -42,6 +54,12 @@ The patient is a person with a history of heroin use who is currently detoxing. 
 
 ```text
 The patient is a male who presents with generalized aches and pain. He reports a history of heroin use and is currently detoxing. He states he has been using for approximately one year and is experiencing difficulty sleeping and eating. The patient also mentions possible fever, chills, and diarrhea.
+```
+
+**SFT + ORPO (Q4_K_M GGUF)**
+
+```text
+The patient is a person with a history of heroin use who is currently detoxing. They report whole-body aches, pain, and difficulty sleeping or eating. The patient also mentions feeling chilled and having some diarrhea. They suspect they may have a fever. The doctor observes that the patient does not look well and inquires about their symptoms.
 ```
 
 ## SUMMARY - `syn-00255` (synthetic)
@@ -117,6 +135,18 @@ A 17-year-old male with 7 episodes of tonsillitis in the past 12 months was seen
 A 17-year-old male presented to the ENT/ophtho clinic for follow-up on recurrent tonsillitis, with 7 episodes in the past year, including 3 positive for Group A Streptococcus. He has a history of allergic rhinitis, allergic conjunctivitis, and mild intermittent asthma. The patient is scheduled for bilateral tonsillectomy, with pre-operative labs ordered, and will continue ibuprofen for throat pain. His asthma medication was discontinued due to poor sleep and increased anxiety. He was also advised to increase his nasal steroid use and continue eye drops for conjunctivitis. The visit concluded with detailed reassurance about the surgery and a follow-up appointment in two weeks.
 ```
 
+**Base + 2-shot prompting**
+
+```text
+A 17-year-old male with a history of recurrent tonsillitis, allergic rhinitis, and allergic conjunctivitis presents for follow-up. He has experienced seven episodes of sore throat in the past 12 months, including three positive rapid antigen detection tests for Group A Streptococcus. The patient is scheduled for bilateral tonsillectomy, with consent discussed and risks explained. He is also instructed to continue ibuprofen for throat pain until surgery. His medications are adjusted, and he is scheduled for a pre-operative visit in two weeks.
+```
+
+**Base + RAG (2 retrieved examples)**
+
+```text
+A 17-year-old male presented to an ENT/ophtho clinic for recurrent tonsillitis, with 7 episodes in the past year, including 3 positive RADTs for Group A Streptococcus. He also complained of halitosis, tonsil stones, and itchy watery eyes, particularly in spring. The patient is an HS junior who plays soccer. The diagnosis is recurrent tonsillitis meeting Paradise criteria, with chronic tonsil hypertrophy. The plan includes recommending bilateral tonsillectomy, increasing fluticasone to 2 sprays each nostril daily, continuing cetirizine, discontinuing montelukast due to poor sleep and anxiety, and providing pre-operative care instructions. Follow-up is scheduled in 2 weeks for a pre-op visit.
+```
+
 **SFT**
 
 ```text
@@ -127,6 +157,12 @@ A 17-year-old male with allergic rhinitis, allergic conjunctivitis, and mild int
 
 ```text
 A 17-year-old male with allergic rhinitis, allergic conjunctivitis, and mild intermittent asthma presented to ENT/ophtho clinic for follow-up of recurrent tonsillitis with 7 episodes in 12 months, including 3 positive rapid antigen tests. He was anxious and asked many questions about surgery, pain, bleeding, and recovery. Exam showed 3+ tonsils with cryptic debris, tender anterior cervical nodes, and mild conjunctival injection, and the RADT was negative. The assessment was recurrent tonsillitis meeting Paradise criteria, with allergic rhinitis and allergic conjunctivitis. The plan is bilateral tonsillectomy after a CBC and PT/INR, increased fluticasone, continued olopatadine and albuterol, stopped montelukast, and follow-up in 2 weeks.
+```
+
+**SFT + ORPO (Q4_K_M GGUF)**
+
+```text
+A 17-year-old male with allergic rhinitis, allergic conjunctivitis and mild intermittent asthma presented to ENT/ophtho clinic with his mother for recurrent sore throat over the past year. He has had 7 episodes in 12 months, 3 with GAS confirmed by rapid antigen detection test, and he denies fever, trismus, drooling, voice change and ear pain today. Exam showed 3+ tonsils with cryptic debris, tender anterior cervical nodes, mild conjunctival injection and no exudate or wheeze. The assessment was recurrent tonsillitis meeting Paradise criteria, with situational anxiety about surgery. The plan is bilateral tonsillectomy after a pre-op visit, CBC and PT/INR, continued ibuprofen, increased fluticasone, olopatadine and albuterol, stopped montelukast, and reassurance.
 ```
 
 ## SOAP - `mts-train-411` (mts-dialog)
@@ -198,6 +234,41 @@ PLAN:
 2. Schedule a follow-up appointment in one month to reassess symptoms.
 ```
 
+**Base + 2-shot prompting**
+
+```text
+SUBJECTIVE:
+Chief complaint: Sexual dysfunction. Patient reports difficulty maintaining erections and decreased desire. Took a quiz online indicating less than half the time he is able to get and maintain an erection after penetration. No significant past medical history, no testicular infections, no traumatic injuries to the groin, and no hernias.
+
+OBJECTIVE:
+Not documented.
+
+ASSESSMENT:
+Erectile dysfunction
+
+PLAN:
+1. Discuss potential benefits and risks of Cialis with the patient.
+2. Schedule further evaluation if symptoms persist or worsen.
+```
+
+**Base + RAG (2 retrieved examples)**
+
+```text
+SUBJECTIVE:
+The patient is a 33-year-old black male presenting with concerns about sexual dysfunction. He mentions difficulty maintaining erections and a decreased desire for sex. He completed an online quiz indicating less than half the time he is able to get and maintain an erection after penetration. He denies any significant medical conditions, testicular infections, traumatic injuries to the groin, or hernias.
+
+OBJECTIVE:
+Not documented.
+
+ASSESSMENT:
+Sexual dysfunction characterized by difficulty maintaining erections.
+
+PLAN:
+1. Discuss the patient's concerns and symptoms in detail.
+2. Consider initiating treatment with Cialis based on the patient's symptoms and quiz results.
+3. Schedule a follow-up appointment to reassess symptoms and response to treatment.
+```
+
 **SFT**
 
 ```text
@@ -228,6 +299,22 @@ Not documented.
 
 PLAN:
 Not documented.
+```
+
+**SFT + ORPO (Q4_K_M GGUF)**
+
+```text
+SUBJECTIVE:
+The patient is a 33-year-old black male who reports sexual dysfunction and decreased desire. He took an online quiz on the Cialis website and did not score in the normal range. He states he has slight difficulty maintaining an erection until completion. He denies significant medical conditions, testicular infections, traumatic injuries to the groin, or hernias.
+
+OBJECTIVE:
+Not documented.
+
+ASSESSMENT:
+Not documented.
+
+PLAN:
+1. Discuss sexual dysfunction and decreased desire
 ```
 
 ## SOAP - `syn-00118` (synthetic)
@@ -313,6 +400,52 @@ PLAN:
 8. Follow up if temperature exceeds 100.4 F, unable to keep fluids down, or worsening abdominal pain.
 ```
 
+**Base + 2-shot prompting**
+
+```text
+SUBJECTIVE:
+34-year-old female with a chief complaint of abdominal cramping and loose stools after gluten exposure. Known diagnosis of celiac disease (diagnosed 5 years ago). History of poor gastrointestinal follow-up: last GI visit was 2 years ago. No car, bus does not run to the GI clinic 40 miles away, missed 3 appointments due to transportation issues. Denies blood in stool, melena, fever, and vomiting. Weight stable. Last menstrual period 2 weeks ago. PMH includes celiac disease, iron deficiency anemia, and vitamin D deficiency. Medications include ferrous sulfate 325 mg daily and vitamin D3 1000 units daily. NKDA.
+
+OBJECTIVE:
+Vitals: Temperature 98.4°F, Heart rate 96, Blood pressure 112/70, Respiratory rate 16, SpO2 99% RA. Exam: mildly dry mucous membranes, diffuse mild abdominal tenderness, hyperactive bowel sounds; no guarding, no rebound, soft. ED labs: Hemoglobin 10.4, Ferritin 9, Potassium 3.5, Creatinine 0.7, tTG-IgA 62 U/mL (elevated), 25-OH vitamin D 18 ng/mL (low), urine hCG negative. ED course: 1 liter of NS bolus, symptoms improved, tolerating oral intake.
+
+ASSESSMENT:
+Celiac disease with symptomatic gluten exposure + mild dehydration. Persistent iron deficiency anemia + vitamin D deficiency from malabsorption.
+
+PLAN:
+1. Reinforce strict gluten-free diet.
+2. Refer to dietitian for telehealth consultation.
+3. Change ferrous sulfate from 325 mg daily to 325 mg every other day.
+4. Increase vitamin D3 from 1000 units to 2000 units daily.
+5. Schedule telehealth visit with GI specialist.
+6. Provide ride vouchers for any in-person visits through social work.
+7. Repeat tTG-IgA, ferritin, CBC in 3 months at a lab near home.
+8. Follow up if temperature over 100.4°F, unable to keep fluids down, or worsening belly pain.
+```
+
+**Base + RAG (2 retrieved examples)**
+
+```text
+SUBJECTIVE:
+34-year-old female in the ED for abdominal cramping and loose stools after gluten exposure. Known celiac disease diagnosed 5 years ago. Poor gastrointestinal follow-up: last GI visit 2 years ago. No car, bus doesn't run to the GI clinic 40 miles away, missed 3 appointments due to transportation issues. Ate pasta at a family dinner 5 days ago, followed by cramping, bloating, 4-5 loose stools per day for 4 days, and fatigue. Denies blood in stool, melena, fever, or vomiting. Weight stable. Last menstrual period 2 weeks ago. History of celiac disease, iron deficiency anemia, and vitamin D deficiency. Currently taking ferrous sulfate 325 mg daily and vitamin D3 1000 units daily. No known drug allergies. Social history: no car, bus doesn't run to the GI clinic, missed 3 appointments due to transportation issues.
+
+OBJECTIVE:
+Temperature 98.4 F, heart rate 96, blood pressure 112/70, respiratory rate 16, SpO2 99% on room air. Mildly dry mucous membranes, diffuse mild abdominal tenderness, hyperactive bowel sounds; no guarding, no rebound, soft abdomen. Lab results: hemoglobin 10.4, ferritin 9, potassium 3.5, creatinine 0.7, tTG-IgA 62 U/mL (elevated), 25-OH vitamin D 18 ng/mL (low), urine hCG negative.
+
+ASSESSMENT:
+Celiac disease with symptomatic gluten exposure and mild dehydration. Persistent iron deficiency anemia and vitamin D deficiency from malabsorption.
+
+PLAN:
+1. Reinforce strict gluten-free diet.
+2. Refer to dietitian for telehealth consultation.
+3. Change ferrous sulfate from 325 mg daily to 325 mg every other day (better absorption).
+4. Increase vitamin D3 from 1000 units to 2000 units daily.
+5. Schedule a telehealth visit with the GI clinic so she does not need to travel.
+6. Consult social worker for ride vouchers for any in-person visits.
+7. Repeat tTG-IgA, ferritin, and CBC in 3 months at a lab near her home.
+8. Advise to return if temperature over 100.4 F, unable to keep fluids down, or worsening belly pain.
+```
+
 **SFT**
 
 ```text
@@ -357,6 +490,28 @@ PLAN:
 6. Social work consulted for ride vouchers for any in-person visit
 7. Repeat tTG-IgA, ferritin, and CBC in 3 months at a lab near home
 8. Return for temperature over 100.4 F, inability to keep fluids down, or worsening belly pain
+```
+
+**SFT + ORPO (Q4_K_M GGUF)**
+
+```text
+SUBJECTIVE:
+34-year-old female with known celiac disease (diagnosed 5 years ago) presents after gluten exposure with abdominal cramping and loose stools for 4 days. Ate pasta at a family dinner about 5 days ago; then cramping, bloating, 4-5 loose BMs per day, fatigue. Denies blood in stool, melena, fever, vomiting. Weight stable. Last GI visit 2 years ago; no car and the bus does not run to the clinic 40 miles away, so she missed 3 appointments. PMH: celiac disease, iron deficiency anemia, vitamin D deficiency. Takes ferrous sulfate 325 mg daily and vitamin D3 1000 units daily; NKDA.
+
+OBJECTIVE:
+Temp 98.4 F, HR 96, BP 112/70, RR 16, SpO2 99% on room air. Mildly dry mucous membranes, diffuse mild abdominal tenderness, hyperactive bowel sounds, no guarding or rebound, soft. Hgb 10.4, ferritin 9, K 3.5, Cr 0.7, tTG-IgA 62 U/mL (elevated), 25-OH vit D 18 ng/mL (low), urine hCG negative.
+
+ASSESSMENT:
+Celiac disease with symptomatic gluten exposure and mild dehydration; persistent iron deficiency anemia and vitamin D deficiency from malabsorption.
+
+PLAN:
+1. Discharge home
+2. Strict gluten-free diet reinforced; dietitian referral by telehealth
+3. Change ferrous sulfate from 325 mg daily to 325 mg every other day
+4. Increase vitamin D3 from 1000 units to 2000 units daily
+5. GI referral with telehealth visit (video or phone) so she does not need to travel; SW consulted for ride vouchers
+6. Repeat tTG-IgA, ferritin, CBC in 3 months at a lab near home
+7. Return for temperature over 100.4 F, inability to keep fluids down, or worsening belly pain
 ```
 
 ## ENTITIES - `mts-train-967` (mts-dialog)
@@ -451,6 +606,114 @@ Patient: No.
     {"text": "coughing up blood", "negated": true},
     {"text": "wheezing", "negated": true},
     {"text": "swelling in your legs", "negated": true}
+  ],
+  "diagnoses": [],
+  "medications": [],
+  "procedures": []
+}
+```
+
+**Base + 2-shot prompting**
+
+```text
+{
+  "symptoms": [
+    {
+      "text": "trouble breathing",
+      "negated": false
+    },
+    {
+      "text": "lose breath quickly with one to two flights of stairs",
+      "negated": false
+    },
+    {
+      "text": "chest pain or tightness with shortness of breath",
+      "negated": true
+    },
+    {
+      "text": "fever",
+      "negated": true
+    },
+    {
+      "text": "chills",
+      "negated": true
+    },
+    {
+      "text": "sweats",
+      "negated": true
+    },
+    {
+      "text": "cough",
+      "negated": true
+    },
+    {
+      "text": "coughing up blood",
+      "negated": true
+    },
+    {
+      "text": "wheezing",
+      "negated": true
+    },
+    {
+      "text": "swelling in legs",
+      "negated": true
+    }
+  ],
+  "diagnoses": [],
+  "medications": [],
+  "procedures": []
+}
+```
+
+**Base + RAG (2 retrieved examples)**
+
+```text
+{
+  "symptoms": [
+    {
+      "text": "trouble breathing",
+      "negated": false
+    },
+    {
+      "text": "lose my breath quickly with just one to two flights of stairs",
+      "negated": false
+    },
+    {
+      "text": "chest pain",
+      "negated": true
+    },
+    {
+      "text": "tightness",
+      "negated": true
+    },
+    {
+      "text": "fever",
+      "negated": true
+    },
+    {
+      "text": "chills",
+      "negated": true
+    },
+    {
+      "text": "sweats",
+      "negated": true
+    },
+    {
+      "text": "cough",
+      "negated": true
+    },
+    {
+      "text": "coughing up blood",
+      "negated": true
+    },
+    {
+      "text": "wheezing",
+      "negated": true
+    },
+    {
+      "text": "swelling in your legs",
+      "negated": true
+    }
   ],
   "diagnoses": [],
   "medications": [],
@@ -557,6 +820,42 @@ Patient: No.
     },
     {
       "text": "swelling in your legs",
+      "negated": true
+    }
+  ],
+  "diagnoses": [],
+  "medications": [],
+  "procedures": []
+}
+```
+
+**SFT + ORPO (Q4_K_M GGUF)**
+
+```text
+{
+  "symptoms": [
+    {
+      "text": "trouble breathing",
+      "negated": false
+    },
+    {
+      "text": "lose my breath so quickly",
+      "negated": false
+    },
+    {
+      "text": "chest pain or tightness",
+      "negated": true
+    },
+    {
+      "text": "fever, chills, or sweats",
+      "negated": true
+    },
+    {
+      "text": "cough or coughing up blood",
+      "negated": true
+    },
+    {
+      "text": "wheezing or swelling in your legs",
       "negated": true
     }
   ],
@@ -756,6 +1055,161 @@ Recommendations and plan. Continue methylprednisolone 1000 mg IV daily [...]
   ]
 }
 ```
+```
+
+**Base + 2-shot prompting**
+
+```text
+{
+  "symptoms": [
+    {"text": "numbness", "negated": false},
+    {"text": "weakness", "negated": false},
+    {"text": "trouble walking", "negated": false},
+    {"text": "dragging the right foot", "negated": false},
+    {"text": "holding onto the walls at home", "negated": false},
+    {"text": "bladder urgency", "negated": false},
+    {"text": "electric shock sensation down her spine", "negated": false},
+    {"text": "fever", "negated": true},
+    {"text": "painful urination", "negated": true},
+    {"text": "headache", "negated": true},
+    {"text": "vision loss", "negated": true},
+    {"text": "double vision", "negated": true},
+    {"text": "difficulty swallowing", "negated": true},
+    {"text": "new weakness in the arms", "negated": true}
+  ],
+  "diagnoses": [
+    "relapsing remitting multiple sclerosis",
+    "acute relapse of multiple sclerosis",
+    "right sided cervical cord lesion",
+    "lymphopenia",
+    "steroid associated hyperglycemia"
+  ],
+  "medications": [
+    {"name": "dimethyl fumarate", "dose": "120 mg", "frequency": "twice daily"},
+    {"name": "correction", "dose": "240 mg", "frequency": "twice daily"},
+    {"name": "baclofen", "dose": "5 mg", "frequency": "three times daily"},
+    {"name": "amlodipine", "dose": "5 mg", "frequency": "daily"},
+    {"name": "metformin", "dose": "1000 mg", "frequency": "twice daily"},
+    {"name": "pantoprazole", "dose": "40 mg", "frequency": "daily"},
+    {"name": "insulin lispro", "dose": null, "frequency": "sliding scale with meals"}
+  ],
+  "procedures": [
+    "MRI of the brain and cervical spine with and without gadolinium",
+    "bladder scan for post void residual",
+    "physical therapy",
+    "occupational therapy"
+  ]
+}
+```
+
+**Base + RAG (2 retrieved examples)**
+
+```text
+{
+  "symptoms": [
+    {
+      "text": "numbness and weakness in the right leg",
+      "negated": false
+    },
+    {
+      "text": "trouble walking",
+      "negated": false
+    },
+    {
+      "text": "dragging the right foot",
+      "negated": false
+    },
+    {
+      "text": "bladder urgency",
+      "negated": false
+    },
+    {
+      "text": "electric shock sensation down her spine",
+      "negated": false
+    },
+    {
+      "text": "fever",
+      "negated": true
+    },
+    {
+      "text": "painful urination",
+      "negated": true
+    },
+    {
+      "text": "headache",
+      "negated": true
+    },
+    {
+      "text": "vision loss",
+      "negated": true
+    },
+    {
+      "text": "double vision",
+      "negated": true
+    },
+    {
+      "text": "difficulty swallowing",
+      "negated": true
+    },
+    {
+      "text": "new weakness in the arms",
+      "negated": true
+    }
+  ],
+  "diagnoses": [
+    "relapsing remitting multiple sclerosis",
+    "acute relapse of multiple sclerosis",
+    "right sided cervical cord lesion",
+    "lymphopenia",
+    "steroid associated hyperglycemia",
+    "breakthrough on dimethyl fumarate"
+  ],
+  "medications": [
+    {
+      "name": "dimethyl fumarate",
+      "dose": "120 mg",
+      "frequency": "twice daily"
+    },
+    {
+      "name": "correction",
+      "dose": "240 mg",
+      "frequency": "twice daily"
+    },
+    {
+      "name": "baclofen",
+      "dose": "5 mg",
+      "frequency": "three times daily"
+    },
+    {
+      "name": "amlodipine",
+      "dose": "5 mg",
+      "frequency": "daily"
+    },
+    {
+      "name": "metformin",
+      "dose": "1000 mg",
+      "frequency": "twice daily"
+    },
+    {
+      "name": "pantoprazole",
+      "dose": "40 mg",
+      "frequency": "daily"
+    },
+    {
+      "name": "insulin lispro",
+      "dose": null,
+      "frequency": "on a sliding scale with meals"
+    }
+  ],
+  "procedures": [
+    "urinalysis",
+    "urine culture",
+    "MRI of the brain and cervical spine with and without gadolinium",
+    "bladder scan",
+    "physical therapy",
+    "occupational therapy"
+  ]
+}
 ```
 
 **SFT**
@@ -962,6 +1416,121 @@ Recommendations and plan. Continue methylprednisolone 1000 mg IV daily [...]
     {
       "name": "methylprednisolone",
       "dose": "1000 mg",
+      "frequency": "daily"
+    },
+    {
+      "name": "pantoprazole",
+      "dose": "40 mg",
+      "frequency": "daily"
+    },
+    {
+      "name": "insulin lispro",
+      "dose": null,
+      "frequency": "with meals"
+    }
+  ],
+  "procedures": [
+    "Urinalysis",
+    "urine culture",
+    "WBC",
+    "creatinine",
+    "glucose",
+    "absolute lymphocyte count",
+    "MRI of the brain and cervical spine with and without gadolinium",
+    "bladder scan"
+  ]
+}
+```
+
+**SFT + ORPO (Q4_K_M GGUF)**
+
+```text
+{
+  "symptoms": [
+    {
+      "text": "numbness",
+      "negated": false
+    },
+    {
+      "text": "weakness",
+      "negated": false
+    },
+    {
+      "text": "trouble walking",
+      "negated": false
+    },
+    {
+      "text": "dragging the right foot",
+      "negated": false
+    },
+    {
+      "text": "bladder urgency",
+      "negated": false
+    },
+    {
+      "text": "electric shock sensation",
+      "negated": false
+    },
+    {
+      "text": "fever",
+      "negated": true
+    },
+    {
+      "text": "painful urination",
+      "negated": true
+    },
+    {
+      "text": "headache",
+      "negated": true
+    },
+    {
+      "text": "vision loss",
+      "negated": true
+    },
+    {
+      "text": "double vision",
+      "negated": true
+    },
+    {
+      "text": "difficulty swallowing",
+      "negated": true
+    },
+    {
+      "text": "new weakness in the arms",
+      "negated": true
+    }
+  ],
+  "diagnoses": [
+    "relapsing remitting multiple sclerosis",
+    "hypertension",
+    "type 2 diabetes",
+    "osteoporosis",
+    "lymphopenia"
+  ],
+  "medications": [
+    {
+      "name": "dimethyl fumarate",
+      "dose": "240 mg",
+      "frequency": "twice daily"
+    },
+    {
+      "name": "baclofen",
+      "dose": "10 mg",
+      "frequency": "three times daily"
+    },
+    {
+      "name": "amlodipine",
+      "dose": "5 mg",
+      "frequency": "daily"
+    },
+    {
+      "name": "metformin",
+      "dose": "1000 mg",
+      "frequency": "twice daily"
+    },
+    {
+      "name": "methylprednisolone",
+      "dose": "1000 mg IV",
       "frequency": "daily"
     },
     {

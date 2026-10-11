@@ -35,7 +35,7 @@ from clinical_tuner.llm import gather_with_progress, make_client
 from clinical_tuner.metrics import reward
 from clinical_tuner.prompts import render_entities
 from clinical_tuner.text import contains_term, normalize, sentences
-from clinical_tuner.utils import read_jsonl, resolve, setup_logging, write_json, write_jsonl
+from clinical_tuner.utils import read_jsonl, resolve, setup_logging, stable_hash, write_json, write_jsonl
 
 log = logging.getLogger("prefs")
 
@@ -107,8 +107,9 @@ async def main_async(args: argparse.Namespace) -> None:
     client = make_client(cfg.endpoint(pc.policy_endpoint))
     gen_kwargs = dict(temperature=pc.temperature, top_p=pc.top_p, max_tokens=pc.max_tokens, n=pc.n_samples)
 
-    async def sample(ex: dict[str, Any]) -> list[str]:
-        return await client.chat(ex["messages"], **gen_kwargs)
+    async def sample(ex: dict[str, Any]) -> list[str]:  # per-prompt seed: re-runs draw the same samples
+        seed = cfg.project.seed + int(stable_hash(ex["id"], 8), 16) % 1_000_000
+        return await client.chat(ex["messages"], seed=seed, **gen_kwargs)
 
     samples = await gather_with_progress(rows, sample, desc="on-policy sampling")
     await client.close()
