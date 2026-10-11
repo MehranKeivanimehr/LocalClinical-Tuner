@@ -186,8 +186,10 @@ def _entities_html(text: str) -> str:
     return "<br>".join(f"<b>{k}:</b> {'; '.join(v) if v else '-'}" for k, v in parts)
 
 
-def qualitative_block(cfg, max_note_words: int = 350) -> str:
-    """One randomly chosen (seeded) held-out test note per task, outputs side by side, scored against the reference."""
+def qualitative_block(cfg, max_note_words: int = 350) -> str | None:
+    """One randomly chosen (seeded) held-out test note per task, outputs side by side, scored against the reference.
+
+    Returns None when the generations are not available (they are not committed), so the README keeps its examples."""
     from clinical_tuner.metrics import entity_counts, micro_f1, parse_entities_output, rouge_l
     from clinical_tuner.schemas import Entities
 
@@ -196,7 +198,7 @@ def qualitative_block(cfg, max_note_words: int = 350) -> str:
     for tag, _ in QUAL_MODELS:
         path = rdir / "generations" / f"{tag}.jsonl"
         if not path.exists():
-            return "_Run the evaluation to populate._"
+            return None
         gens[tag] = {g["id"]: g["output"] for g in read_jsonl(path)}
     test = read_jsonl(resolve(cfg.data.processed_dir) / "test.jsonl")
     rng = random.Random(cfg.project.seed)
@@ -263,7 +265,8 @@ def data_block(cfg) -> str:
     return "\n".join(lines)
 
 
-def hardware_block(cfg) -> str:
+def hardware_block(cfg) -> str | None:
+    """Measured training table; None when the run's outputs/ are not present (e.g. a fresh clone) -> keep the README."""
     rows, peaks = [], []
     for stage, path in (("SFT", resolve(cfg.sft.output_dir) / "train_metrics.json"),
                         ("ORPO", resolve(cfg.orpo.output_dir) / "train_metrics.json")):
@@ -274,6 +277,8 @@ def hardware_block(cfg) -> str:
             rows.append(f"| {stage} | {t.get('gpu', '?')} | {t.get('peak_reserved_gb', '?')} GB | "
                         f"{t['train_seconds'] / 60:.0f} min | {n:,} {'examples' if stage == 'SFT' else 'pairs'}, "
                         f"{t['global_steps']} steps |")
+    if not rows:
+        return None
     lines = ["Measured training runs of the reference run (one GPU per stage):\n",
              "| Stage | GPU | Peak VRAM (reserved) | Wall time | Workload |", "|---|---|---|---|---|", *rows]
     manifest = next(iter(sorted(resolve(cfg.export.output_dir).glob("*-manifest.json"))), None)
@@ -301,12 +306,15 @@ def main() -> None:
     readme = PROJECT_ROOT / "README.md"
     text = readme.read_text()
     text = _replace(text, "RESULTS", results_block(cfg))
-    text = _replace(text, "HARDWARE", hardware_block(cfg))
+    hardware = hardware_block(cfg)
+    if hardware is not None:
+        text = _replace(text, "HARDWARE", hardware)
     text = _replace(text, "DATA", data_block(cfg))
     if "<!-- BEFORE_AFTER:START -->" in text:
         text = _replace(text, "BEFORE_AFTER", before_after_block(cfg))
-    if "<!-- QUALITATIVE:START -->" in text:
-        text = _replace(text, "QUALITATIVE", qualitative_block(cfg))
+    qualitative = qualitative_block(cfg) if "<!-- QUALITATIVE:START -->" in text else None
+    if qualitative is not None:
+        text = _replace(text, "QUALITATIVE", qualitative)
     if "<!-- SELECTION:START -->" in text:
         text = _replace(text, "SELECTION", selection_block(cfg))
     readme.write_text(text)

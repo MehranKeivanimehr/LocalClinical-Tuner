@@ -171,7 +171,7 @@ orpo:
   nll_on_prompt: false                     # ORPO NLL on the response only (TRL default: prompt + response)
   epochs: 2
   learning_rate: 3.0e-5
-  per_device_batch_size: 1                # chosen + rejected per step; peak 14.9 GB on the longest pairs (bs 2: 24.0 GB)
+  per_device_batch_size: 1                # 1 pair (chosen + rejected) per step: 18.5 GB peak reserved; bs 2 needs ~27 GB
   gradient_accumulation_steps: 16         # effective batch 16
   warmup_ratio: 0.1
   lr_scheduler: cosine

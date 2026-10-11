@@ -510,6 +510,9 @@ def cmd_report(cfg: Config, args: argparse.Namespace) -> None:
     test = {r["id"]: r for r in load_test(cfg)}
     gens = {m: {g["id"]: g["output"] for g in read_jsonl(gen_path(cfg, m))} for m in model_order(cfg)
             if gen_path(cfg, m).exists()}
+    if not gens:  # generations are not committed: keep the existing sample_outputs.md (e.g. in a fresh clone)
+        log.info("No generations found - wrote %s, kept %s", rdir / "comparison_table.md", rdir / "sample_outputs.md")
+        return
     rng = random.Random(cfg.project.seed)
     S = ["# Sample outputs (held-out test set)\n",
          "Randomly selected (seeded) test encounters. Notes are synthetic or public role-played dialogues.\n"]
