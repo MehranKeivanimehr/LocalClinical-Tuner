@@ -10,9 +10,9 @@
 #   GPUS=0,1 TRAIN_GPU=0 SERVE_GPU=1 VLLM_BIN=~/vllm-env/bin/vllm bash scripts/run_full_pipeline.sh
 #
 # Environment knobs:
-#   GPUS       two GPUs for the 2-GPU servers (teacher/critic Qwen3-32B FP8, judge Qwen2.5-72B FP8)   [6,7]
-#   TRAIN_GPU  GPU for Unsloth training and BERTScore                                                 [6]
-#   SERVE_GPU  GPU for single-GPU vLLM/Ollama inference servers                                        [7]
+#   GPUS       two GPUs for the 2-GPU servers (teacher/critic Qwen3-32B FP8, judge Qwen2.5-72B FP8)   [0,1]
+#   TRAIN_GPU  GPU for Unsloth training and BERTScore                                                 [0]
+#   SERVE_GPU  GPU for single-GPU vLLM/Ollama inference servers                                        [1]
 #   VLLM_BIN   vLLM executable (vLLM runs in its own environment; see README)                          [vllm]
 #   TEACHER_MODEL / JUDGE_MODEL   HF ids or local paths                     [Qwen/Qwen3-32B / Qwen/Qwen2.5-72B-Instruct]
 #   DATA_SOURCE  where the synthetic 70% comes from:                                                     [api]
@@ -26,9 +26,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 CONFIG="${CONFIG:-training/config.yaml}"
-GPUS="${GPUS:-6,7}"
-TRAIN_GPU="${TRAIN_GPU:-6}"
-SERVE_GPU="${SERVE_GPU:-7}"
+GPUS="${GPUS:-0,1}"
+TRAIN_GPU="${TRAIN_GPU:-0}"
+SERVE_GPU="${SERVE_GPU:-1}"
 export VLLM_BIN="${VLLM_BIN:-vllm}"
 TEACHER_MODEL="${TEACHER_MODEL:-Qwen/Qwen3-32B}"
 JUDGE_MODEL="${JUDGE_MODEL:-Qwen/Qwen2.5-72B-Instruct}"
