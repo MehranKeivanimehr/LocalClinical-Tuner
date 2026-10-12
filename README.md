@@ -1,13 +1,12 @@
 # LocalClinical-Tuner
 
-**Fine-tune an open LLM into a private clinical-documentation assistant that runs 100% on your own hardware.**
+**A clinical-documentation assistant that runs 100% on your own hardware: an open 7B model fine-tuned to summarize
+encounter notes, write SOAP notes and extract medical entities, served offline from a single 4.4 GB file.**
 
-Synthetic + public de-identified data → quality-filtered dataset → **Unsloth QLoRA SFT** → **ORPO** preference optimization
-→ evaluation against the base model and simpler baselines (reference metrics + independent LLM judge) → **GGUF** →
-**Ollama / OpenAI-compatible API / Gradio**.
-
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](.python-version)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](.python-version)
+[![Inference: 100% local, offline](https://img.shields.io/badge/inference-100%25%20local%20%2F%20offline-brightgreen)](#how-this-repository-keeps-inference-local-verified)
+[![Model: GGUF Q4_K_M, 4.4 GB](https://img.shields.io/badge/model-GGUF%20Q4__K__M%2C%204.4%20GB-lightgrey)](#quickstart-run-the-demo)
 [![Base model: Qwen2.5-7B-Instruct](https://img.shields.io/badge/base-Qwen2.5--7B--Instruct-purple)](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)
 [![Training: Unsloth + TRL](https://img.shields.io/badge/training-Unsloth%20%2B%20TRL-orange)](https://github.com/unslothai/unsloth)
 
@@ -21,7 +20,178 @@ Synthetic + public de-identified data → quality-filtered dataset → **Unsloth
 
 *The local demo streaming a SOAP note from the compressed fine-tuned model (real output, synthetic example note).*
 
+**How it is built:** synthetic + public de-identified data → quality-filtered dataset → **Unsloth QLoRA SFT** →
+**ORPO** preference optimization → evaluation against the base model and training-free baselines (reference metrics +
+independent LLM judge) → **GGUF** → **Ollama / OpenAI-compatible API / Gradio**.
+
+**Jump to:** [Quickstart](#quickstart-run-the-demo) · [Headline results](#headline-results) ·
+[Scientific caveats](#reading-the-results-scientific-caveats) · [FAQ](docs/FAQ.md) ·
+[Reproduce everything](#reproduce-everything) · [Data card](data/DATA_CARD.md)
+
 ---
+
+## Quickstart: run the demo
+
+> [!IMPORTANT]
+> **Models are large and are not stored in git.** The demo runs the exported model file
+> `outputs/gguf/localclinical-q4_k_m.gguf` (4.4 GB). Pre-built weights are **not published yet**, so for now the file
+> has to come from a pipeline run:
+>
+> * **Build it:** run the pipeline ([Reproduce everything](#reproduce-everything)); `serving/export_gguf.py` writes it.
+>   Training needs one 24 GB GPU (see [Hardware](#hardware)).
+> * **Copy it** from a machine where the pipeline ran into `outputs/gguf/`, or point the demo at it with
+>   `GGUF=/path/to/localclinical-q4_k_m.gguf`.
+
+**What you need to run the demo:**
+
+| | |
+|---|---|
+| **OS** | Linux or macOS with bash (on Windows, use WSL2: the demo script is a bash script) |
+| **Tools** | [uv](https://docs.astral.sh/uv/) and [Ollama](https://ollama.com/download) (tested with 0.40.2) |
+| **Inference hardware** | about **5 GB of GPU memory** (measured: 5.1 GB on an RTX A6000 at an 8,192-token context, all 29 layers on the GPU). Ollama can also run the model on CPU or Apple Silicon; that is slower and was not benchmarked here. |
+| **Network** | none once Ollama, the Python packages and the model file are on the machine |
+
+From a fresh clone:
+
+```bash
+git clone https://github.com/MehranKeivanimehr/LocalClinical-Tuner.git && cd LocalClinical-Tuner
+```
+
+```bash
+uv sync --locked --extra serve
+```
+
+Place `localclinical-q4_k_m.gguf` in `outputs/gguf/` (see above), check it against the reference run's SHA-256
+(`sha256sum outputs/gguf/localclinical-q4_k_m.gguf`; on macOS `shasum -a 256 ...`), and start the demo:
+
+```text
+2fca1270b90fc502e257109ad0e3cc0c508028cf36eafc71a3f6b1480eab300b  localclinical-q4_k_m.gguf
+5d4b3fe1ab68d97a8deba534b9e7e111140864e9679758f9f0e7745091095ac4  localclinical-q5_k_m.gguf
+```
+
+```bash
+bash scripts/run_demo.sh
+```
+
+The script starts Ollama on `127.0.0.1:11434` (if it is not already running) with cloud features disabled, registers
+`serving/ollama_modelfile` as the model `localclinical`, and opens the Gradio UI at http://127.0.0.1:7860. Pick an
+example note (all synthetic), choose a task, and press **Generate**. On a machine with several GPUs, pin Ollama to one
+of them (its Vulkan backend ignores `CUDA_VISIBLE_DEVICES`, hence `OLLAMA_VULKAN=0`):
+
+```bash
+CUDA_VISIBLE_DEVICES=0 OLLAMA_VULKAN=0 bash scripts/run_demo.sh
+```
+
+![Gradio UI: entity extraction with the extracted entities highlighted in the source note](docs/images/gradio_entities.png)
+
+The same model is available to any OpenAI-compatible client. For the best results send the exact training prompt,
+which `build_messages(task, note)` builds:
+
+```bash
+uv run python -c "import json, sys; from clinical_tuner.prompts import build_messages; print(json.dumps({'model': 'localclinical', 'temperature': 0, 'messages': build_messages('entities', open(sys.argv[1]).read())}))" note.txt > request.json
+```
+
+```bash
+curl -s http://127.0.0.1:11434/v1/chat/completions -H "Content-Type: application/json" -d @request.json | jq -r '.choices[0].message.content'
+```
+
+![Ollama serving the fine-tuned model locally: ollama list, ollama ps (100% GPU) and an entity-extraction request through the OpenAI-compatible API](docs/images/ollama_terminal.png)
+
+**Verified on the final model** (reference machine, one RTX A6000): the UI was driven end to end through its own API
+and in a real browser - all three tasks, the example picker and the empty-input error. Ollama keeps the whole model on
+the GPU (29/29 layers, 5.1 GB at an 8,192-token context). Once loaded, a summary took 3.8 s and a SOAP note or entity
+extraction about 10 s; the first request after start-up also loads the model and is slower. llama.cpp's own server
+works too: `llama-server -m outputs/gguf/localclinical-q4_k_m.gguf --port 8080` exposes `/v1/chat/completions` with the
+GGUF's embedded chat template.
+
+### Troubleshooting the demo
+
+| Symptom | What to do |
+|---|---|
+| `Ollama is not installed` | Install it from [ollama.com/download](https://ollama.com/download) (Linux: `curl -fsSL https://ollama.com/install.sh \| sh`) or point `OLLAMA_BIN` at the binary. |
+| `GGUF not found at ...` | The weights are not in git (see the box above). Put the file in `outputs/gguf/` or run `GGUF=/path/to/localclinical-q4_k_m.gguf bash scripts/run_demo.sh`. |
+| Port 7860 is already in use | `bash scripts/run_demo.sh --port 7861` (extra arguments are passed to `serving/gradio_app.py`). |
+| Port 11434 is used by another program | `OLLAMA_HOST=127.0.0.1:11435 bash scripts/run_demo.sh` |
+| An Ollama server is already running (for example the system service) | The script reuses it as it is, so `OLLAMA_NO_CLOUD=1` only takes effect when the script starts Ollama itself. Stop the running server first, or set `OLLAMA_NO_CLOUD=1` in its environment. |
+| The UI says the model is `NOT reachable` | Ollama is not running at the configured address. Start the demo with `scripts/run_demo.sh` rather than `serving/gradio_app.py` on its own. |
+| Generation is slow | Run `ollama ps`: the PROCESSOR column should read `100% GPU`. If it shows CPU, Ollama cannot see the GPU - check `nvidia-smi` (NVIDIA) and the driver note under [Hardware](#hardware). On a multi-GPU machine, pin one GPU as shown above. |
+| `nvidia-smi` reports *Driver/library version mismatch* | Usually an automatic driver update without a reboot; reboot the machine (details under [Hardware](#hardware)). |
+| You want to work fully offline | The demo never contacts Hugging Face, and the UI loads no remote assets. For training and evaluation, download the models once and then set `HF_HUB_OFFLINE=1`. |
+
+## Headline results
+
+All numbers are measured on **300 held-out test examples** (100 encounters never seen in training: 70 synthetic, 26
+MTS-Dialog, 4 ACI-Bench), with identical prompts and greedy decoding for every model. Read them together with the
+[scientific caveats](#reading-the-results-scientific-caveats) below.
+
+<!-- BEFORE_AFTER:START -->
+| Metric (300 held-out test examples) | **Before**: base Qwen2.5-7B-Instruct | **SFT** | **SFT+ORPO**, 16-bit (exported) | **SFT+ORPO, Q4_K_M GGUF**, 4.4 GB (what the demo runs) | Change (SFT+ORPO − base) |
+|---|---|---|---|---|---|
+| Summary ROUGE-L | 0.383 | 0.558 | 0.548 | 0.544 | +0.165 (+43%) |
+| Summary BERTScore F1 | 0.411 | 0.569 | 0.567 | 0.559 | +0.156 (+38%) |
+| SOAP note ROUGE-L | 0.583 | 0.749 | 0.752 | 0.747 | +0.168 (+29%) |
+| SOAP note BERTScore F1 | 0.471 | 0.736 | 0.748 | 0.737 | +0.277 (+59%) |
+| Entity extraction F1 (relaxed) | 0.630 | 0.829 | 0.829 | 0.816 | +0.198 (+31%) |
+| Entity extraction F1 (strict) | 0.544 | 0.798 | 0.796 | 0.774 | +0.252 (+46%) |
+| Denied symptoms kept as denied | 97.6% | 100.0% | 100.0% | 99.9% | +2.4 pts |
+| Summaries within 132 words (limit 120 + 10%) | 98.0% | 99.0% | 99.0% | 98.0% | +1.0 pts |
+| LLM-judge overall score (1-5) | 4.373 | 4.573 | 4.384 | n/a | +0.010 (+0%) |
+
+Change = SFT+ORPO (16-bit) minus base. The judge scored the 16-bit models only, on 150 of the test examples. SFT and SFT+ORPO are within each other's 95% CIs on every reference metric above. Head to head, the judge does not prefer the ORPO stage: SFT+ORPO vs SFT win / tie / loss 5% / 74% / 21%. Confidence intervals and the training-free baselines (2-shot prompting, RAG): [Full comparison](#full-comparison).
+<!-- BEFORE_AFTER:END -->
+
+* **Supervised fine-tuning (SFT) produces the gains.** Training-free alternatives on the same base model close part of
+  the gap: retrieving two similar training examples into the prompt (RAG) recovers roughly half of it (entity F1 0.630
+  → 0.738 vs 0.829 after SFT).
+* **The preference stage (ORPO) adds no measurable gain**, and the judge slightly prefers plain SFT
+  ([why](#why-the-orpo-stage-added-little)).
+* **4-bit compression costs little:** the 4.4 GB GGUF stays inside the 95% CIs of its 16-bit source on every metric.
+
+Full comparison with CIs and baselines: [below](#full-comparison) · per-source tables:
+[results/comparison_table.md](results/comparison_table.md) · raw numbers: [results/metrics.json](results/metrics.json)
+· side-by-side generations: [results/sample_outputs.md](results/sample_outputs.md)
+
+## Who this is for
+
+**For:**
+
+* People building **local LLM** applications who want a complete, reproducible example: data → QLoRA SFT → preference
+  optimization → evaluation → GGUF → Ollama.
+* **Privacy-preserving ML** demos: a narrow model that never sends text off the machine.
+* Learning when **fine-tuning beats prompting or RAG** on a narrow domain, with the baselines measured on the same test
+  set.
+
+**Not for:**
+
+* Clinical deployment, diagnosis, triage or any clinical decision support.
+* Processing **real patient notes** without a full clinical validation pipeline (clinician-verified labels, evaluation
+  on representative real data, and the governance your institution requires).
+
+## Reading the results: scientific caveats
+
+* **Most labels are model-generated, not clinician-verified.** All synthetic notes and their labels were written by an
+  LLM, and most public-dialogue labels were written by a local LLM teacher; only some ACI-Bench SOAP notes and
+  MTS-Dialog summaries reuse human-written references ([data card](data/DATA_CARD.md)). The fine-tuned model learns
+  the conventions *and the mistakes* of these labels.
+* **The test set is mostly synthetic, and the public slices are small.** 70 of the 100 test encounters are synthetic,
+  26 MTS-Dialog and only 4 ACI-Bench, so per-source numbers for ACI-Bench are anecdotal. Gains are largest on the
+  synthetic slice: summary ROUGE-L rises 0.370 → 0.579 (base → SFT) on synthetic notes, 0.409 → 0.515 on MTS-Dialog and
+  0.433 → 0.468 on ACI-Bench ([per-source tables](results/comparison_table.md#by-data-source)).
+* **Automatic metrics measure agreement with the reference, not clinical correctness.** ROUGE-L, BERTScore and entity
+  F1 reward matching the wording and format of the (model-written) references. In the [qualitative
+  examples](#qualitative-examples-side-by-side) the base model invents an age, a sex and a plan and still gets a
+  slightly higher ROUGE-L than the fine-tuned models.
+* **The LLM judge is an auxiliary signal.** The judge (Qwen2.5-72B-Instruct) is from the same model family as the base
+  model, it also served as the quality critic for the public dialogues (it filtered them but wrote no labels), its
+  pairwise verdicts agree across the two presentation orders only 50-60% of the time, and it gave different scores to
+  identical outputs. Head to head it prefers the base model's SOAP notes (50% vs 10%), mostly a style preference.
+* **SFT drives the gains; ORPO adds little.** On reference metrics SFT and SFT+ORPO are statistically
+  indistinguishable, and the judge prefers SFT over SFT+ORPO (win / tie / loss 5% / 74% / 21%; overall 4.57 vs 4.38).
+  The exported model is SFT+ORPO only because it was selected on validation data before the test set was scored.
+* **RAG closes part of the gap; fine-tuning still wins on format and leakage.** With retrieved or fixed examples in
+  the prompt, summaries stay within the length limit less often (80% with RAG, 89% with 2-shot, 99% after fine-tuning),
+  prompts are about 3× (2-shot) and 4.4× (RAG) longer, and 2-shot prompting copied a medication (*Toprol*) from its examples into 3 of 100 SOAP
+  notes. The fine-tuned model carries the format in its weights and needs no examples in the prompt.
 
 ## Why this project exists
 
@@ -53,7 +223,7 @@ shows the alternative: **bring a small, specialised model to the data instead of
 ### Local run and operation
 
 * **Runs on hardware you control.** The compressed model is a 4.4 GB file that needs about 5 GB of GPU memory (or runs
-  on CPU / Apple Silicon through Ollama). Training needs one GPU with 24 GB (the optional data-generation and
+  on CPU / Apple Silicon through Ollama, slower and not benchmarked here). Training needs one GPU with 24 GB (the optional data-generation and
   judging steps use larger local models; see [Hardware](#hardware)).
 * **Works offline.** Once the models are downloaded, nothing needs the network (`HF_HUB_OFFLINE=1` for training;
   Ollama and the UI never need it).
@@ -86,28 +256,10 @@ shows the alternative: **bring a small, specialised model to the data instead of
 | **Evaluation** | ROUGE-L, BERTScore, entity F1 (strict + relaxed), negation accuracy, SOAP structure, JSON validity, medication hallucination, length compliance - bootstrap 95% CIs, per task and per data source; **LLM-as-a-judge** (Qwen2.5-72B, which generated none of the training data). Compared against the base model, **2-shot prompting** and **simple RAG** baselines, and the compressed model. |
 | **Serving** | GGUF Q4_K_M + Q5_K_M via llama.cpp, an Ollama Modelfile whose prompt format matches training token for token, an OpenAI-compatible endpoint, a Gradio UI with entity highlighting, and a one-command demo. |
 
-## Results
+## Detailed results
 
-All numbers are measured on **300 held-out test examples** (100 encounters never seen in training: 70 synthetic, 26
-MTS-Dialog, 4 ACI-Bench), with identical prompts and greedy decoding for every model.
-
-### Before and after fine-tuning
-
-<!-- BEFORE_AFTER:START -->
-| Metric (300 held-out test examples) | **Before**: base Qwen2.5-7B-Instruct | **After**: fine-tuned (SFT+ORPO, 16-bit) | **After, compressed**: Q4_K_M GGUF, 4.4 GB (what the demo runs) | Change |
-|---|---|---|---|---|
-| Summary ROUGE-L | 0.383 | 0.548 | 0.544 | +0.165 (+43%) |
-| Summary BERTScore F1 | 0.411 | 0.567 | 0.559 | +0.156 (+38%) |
-| SOAP note ROUGE-L | 0.583 | 0.752 | 0.747 | +0.168 (+29%) |
-| SOAP note BERTScore F1 | 0.471 | 0.748 | 0.737 | +0.277 (+59%) |
-| Entity extraction F1 (relaxed) | 0.630 | 0.829 | 0.816 | +0.198 (+31%) |
-| Entity extraction F1 (strict) | 0.544 | 0.796 | 0.774 | +0.252 (+46%) |
-| Denied symptoms kept as denied | 97.6% | 100.0% | 99.9% | +2.4 pts |
-| Summaries within 132 words (limit 120 + 10%) | 98.0% | 99.0% | 98.0% | +1.0 pts |
-| LLM-judge overall score (1-5) | 4.373 | 4.384 | n/a | +0.010 (+0%) |
-
-Change = after (16-bit) minus before. The judge was run on the 16-bit models only. The SFT-only model scores 4.57 with the judge (see [Reading the results](#reading-the-results)). Confidence intervals, the training-free baselines and the SFT-only model: [Full comparison](#full-comparison).
-<!-- BEFORE_AFTER:END -->
+The [headline table](#headline-results) above summarizes these numbers; everything below uses the same 300 held-out
+test examples.
 
 ### Full comparison
 
@@ -511,58 +663,6 @@ All three tasks share one system prompt and take the same note as input:
 | **SOAP note** | `SUBJECTIVE:` / `OBJECTIVE:` / `ASSESSMENT:` / `PLAN:` (numbered) | ROUGE-L, BERTScore, structure adherence, key-entity coverage, medication hallucination |
 | **Entity extraction** | JSON: `symptoms` (with `negated`), `diagnoses`, `medications` (`name`/`dose`/`frequency`), `procedures` | entity F1 (strict + relaxed), negation accuracy, JSON validity |
 
-## Quickstart: run the demo
-
-**What you need:** [uv](https://docs.astral.sh/uv/), [Ollama](https://ollama.com/download) (tested with 0.40.2) and
-the exported model file `outputs/gguf/localclinical-q4_k_m.gguf`. The weights are **not stored in git** (4.4 GB):
-produce them with the pipeline ([Reproduce everything](#reproduce-everything)) or copy the file from wherever it was
-trained into `outputs/gguf/`. The reference run's file has this SHA-256 (check with
-`sha256sum outputs/gguf/localclinical-q4_k_m.gguf`):
-
-```text
-2fca1270b90fc502e257109ad0e3cc0c508028cf36eafc71a3f6b1480eab300b  localclinical-q4_k_m.gguf
-5d4b3fe1ab68d97a8deba534b9e7e111140864e9679758f9f0e7745091095ac4  localclinical-q5_k_m.gguf
-```
-
-```bash
-uv sync --locked --extra serve
-```
-
-```bash
-bash scripts/run_demo.sh
-```
-
-The script starts Ollama on `127.0.0.1:11434` (if it is not already running) with cloud features disabled, registers
-`serving/ollama_modelfile` as the model `localclinical`, and opens the Gradio UI at http://127.0.0.1:7860. Pick an
-example note (all synthetic), choose a task, and press **Generate**. On a machine with several GPUs, pin Ollama to one
-of them (its Vulkan backend ignores `CUDA_VISIBLE_DEVICES`, hence `OLLAMA_VULKAN=0`):
-
-```bash
-CUDA_VISIBLE_DEVICES=0 OLLAMA_VULKAN=0 bash scripts/run_demo.sh
-```
-
-![Gradio UI: entity extraction with the extracted entities highlighted in the source note](docs/images/gradio_entities.png)
-
-The same model is available to any OpenAI-compatible client. For the best results send the exact training prompt,
-which `build_messages(task, note)` builds:
-
-```bash
-uv run python -c "import json, sys; from clinical_tuner.prompts import build_messages; print(json.dumps({'model': 'localclinical', 'temperature': 0, 'messages': build_messages('entities', open(sys.argv[1]).read())}))" note.txt > request.json
-```
-
-```bash
-curl -s http://127.0.0.1:11434/v1/chat/completions -H "Content-Type: application/json" -d @request.json | jq -r '.choices[0].message.content'
-```
-
-![Ollama serving the fine-tuned model locally: ollama list, ollama ps (100% GPU) and an entity-extraction request through the OpenAI-compatible API](docs/images/ollama_terminal.png)
-
-**Verified on the final model** (reference machine, one RTX A6000): the UI was driven end to end through its own API
-and in a real browser - all three tasks, the example picker and the empty-input error. Ollama keeps the whole model on
-the GPU (29/29 layers, 5.1 GB at an 8,192-token context). Once loaded, a summary took 3.8 s and a SOAP note or entity
-extraction about 10 s; the first request after start-up also loads the model and is slower. llama.cpp's own server
-works too: `llama-server -m outputs/gguf/localclinical-q4_k_m.gguf --port 8080` exposes `/v1/chat/completions` with the
-GGUF's embedded chat template.
-
 ## Reproduce everything
 
 ### Hardware
@@ -586,7 +686,7 @@ GGUF's embedded chat template.
 | ORPO (QLoRA) | 1 × 24 GB | measured peak 18.5 GB (batch 1 × 16 accumulation steps) |
 | Evaluation generations (vLLM, 7B in bf16) | 1 × 24 GB+ | the pipeline lets vLLM reserve 85% of the GPU |
 | LLM judge (Qwen2.5-72B FP8) | 2 × 48 GB | optional; everything else works without it |
-| Inference with the Q4_K_M GGUF (Ollama) | ~5 GB | measured 5.1 GB; also runs on CPU or Apple Silicon |
+| Inference with the Q4_K_M GGUF (Ollama) | ~5 GB | measured 5.1 GB; Ollama can also run it on CPU or Apple Silicon (not benchmarked) |
 
 <!-- HARDWARE:START -->
 Measured training runs of the reference run (one GPU per stage):
@@ -618,7 +718,7 @@ GGUF sizes: Q4_K_M 4.36 GB, Q5_K_M 5.07 GB.
 ### Software and locked dependencies
 
 ```bash
-git clone <your-fork-url> LocalClinical-Tuner
+git clone https://github.com/MehranKeivanimehr/LocalClinical-Tuner.git
 ```
 
 ```bash
@@ -811,7 +911,7 @@ GPUS=0,1 LAMBDAS="0.1 0.5" VLLM_BIN=~/vllm-env/bin/vllm bash scripts/tune_orpo.s
 
 * **A smaller GPU.** Training fits 24 GB as configured. On 16 GB, train SFT with `--set sft.per_device_batch_size=1
   --set sft.gradient_accumulation_steps=16` (same effective batch). For inference only, the GGUF runs on any machine
-  that runs Ollama, including CPU-only laptops and Apple Silicon (slower).
+  that runs Ollama, including CPU-only laptops and Apple Silicon (slower; not benchmarked here).
 * **Without the large teacher and judge.** Every model the pipeline talks to is an OpenAI-compatible URL in the
   `endpoints` section of `training/config.yaml`. Point `teacher` and `judge` at smaller local models (for example
   Qwen3-14B and Qwen2.5-32B), or at a hosted API for synthetic data only. Keep the critic a different model from the
@@ -912,7 +1012,11 @@ LocalClinical-Tuner/
 ├── src/clinical_tuner/               # shared library: prompts, schemas, config, LLM clients, metrics, baselines, quality/
 ├── notebooks/full_pipeline_demo.ipynb
 ├── results/                          # metrics.json, comparison_table.md, sample_outputs.md, figures/, metrics_val.json
-├── docs/images/                      # demo GIF and screenshots (real outputs)
+├── docs/
+│   ├── FAQ.md                        # clinical use, data, ORPO, SFT vs RAG, hardware, your own notes
+│   ├── HUGGINGFACE_MODEL_CARD.md     # model card text for a Hugging Face upload
+│   ├── RELEASE_CHECKLIST.md          # Hugging Face upload + GitHub settings (topics, description)
+│   └── images/                       # demo GIF and screenshots (real outputs)
 ├── tests/                            # unit tests (pytest)
 ├── pyproject.toml / uv.lock / .python-version
 └── LICENSE

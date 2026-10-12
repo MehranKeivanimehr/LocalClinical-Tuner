@@ -97,36 +97,52 @@ def before_after_block(cfg) -> str:
     m = _load(resolve(cfg.project.results_dir) / "metrics.json")
     if not m or "base" not in m.get("models", {}) or "orpo" not in m.get("models", {}):
         return "_Run the evaluation to populate._"
-    cols = [c for c in ("base", "orpo", "gguf_q4") if c in m["models"]]
+    cols = [c for c in ("base", "sft", "orpo", "gguf_q4") if c in m["models"]]
+
+    def raw(model, task, key):
+        if task == "judge":
+            return (m.get("judge") or {}).get("absolute", {}).get(model, {}).get(key)
+        return m["models"][model]["by_task"].get(task, {}).get(key)
 
     def val(model, task, key):
-        if task == "judge":
-            v = (m.get("judge") or {}).get("absolute", {}).get(model, {}).get(key)
-        else:
-            v = m["models"][model]["by_task"].get(task, {}).get(key)
+        v = raw(model, task, key)
         return v["mean"] if isinstance(v, dict) else v
 
     def fmt(v, pct):
         return "n/a" if v is None else (f"{100 * v:.1f}%" if pct else f"{v:.3f}")
 
-    head = {"base": "**Before**: base Qwen2.5-7B-Instruct", "orpo": "**After**: fine-tuned (SFT+ORPO, 16-bit)",
-            "gguf_q4": "**After, compressed**: Q4_K_M GGUF, 4.4 GB (what the demo runs)"}
-    lines = ["| Metric (300 held-out test examples) | " + " | ".join(head[c] for c in cols) + " | Change |",
-             "|---|" + "---|" * (len(cols) + 1)]
+    head = {"base": "**Before**: base Qwen2.5-7B-Instruct", "sft": "**SFT**",
+            "orpo": "**SFT+ORPO**, 16-bit (exported)",
+            "gguf_q4": "**SFT+ORPO, Q4_K_M GGUF**, 4.4 GB (what the demo runs)"}
+    lines = ["| Metric (300 held-out test examples) | " + " | ".join(head[c] for c in cols)
+             + " | Change (SFT+ORPO − base) |", "|---|" + "---|" * (len(cols) + 1)]
     for task, key, label, pct in BEFORE_AFTER_ROWS:
         vals = [val(c, task, key) for c in cols]
-        b, a = vals[0], vals[1]
+        b, a = val("base", task, key), val("orpo", task, key)
         if b is None or a is None:
             change = "n/a"
         else:
             d = a - b
             change = f"{100 * d:+.1f} pts" if pct else (f"{d:+.3f} ({100 * d / b:+.0f}%)" if b else f"{d:+.3f}")
         lines.append(f"| {label} | " + " | ".join(fmt(v, pct) for v in vals) + f" | {change} |")
-    sft_judge = val("sft", "judge", "overall") if "sft" in m["models"] else None
-    note = (f" The SFT-only model scores {sft_judge:.2f} with the judge (see [Reading the results](#reading-the-results))."
-            if sft_judge is not None else "")
-    lines.append("\nChange = after (16-bit) minus before. The judge was run on the 16-bit models only." + note +
-                 " Confidence intervals, the training-free baselines and the SFT-only model: "
+    judge_base = raw("base", "judge", "overall")
+    n_judged = judge_base.get("n") if isinstance(judge_base, dict) else None
+    note = ""
+    if "sft" in m["models"]:
+        overlap = []  # do the SFT and SFT+ORPO 95% CIs overlap on every reference metric of this table?
+        for task, key, _, _ in BEFORE_AFTER_ROWS:
+            s, o = raw("sft", task, key), raw("orpo", task, key)
+            if task != "judge" and isinstance(s, dict) and isinstance(o, dict) and "ci95" in s and "ci95" in o:
+                overlap.append(s["ci95"][0] <= o["ci95"][1] and o["ci95"][0] <= s["ci95"][1])
+        if overlap and all(overlap):
+            note += " SFT and SFT+ORPO are within each other's 95% CIs on every reference metric above."
+        pr = ((m.get("judge") or {}).get("pairwise") or {}).get("orpo_vs_sft")
+        if pr:
+            note += (f" Head to head, the judge does not prefer the ORPO stage: SFT+ORPO vs SFT win / tie / loss "
+                     f"{100 * pr['win']:.0f}% / {100 * pr['tie']:.0f}% / {100 * pr['loss']:.0f}%.")
+    judged = f", on {n_judged} of the test examples" if n_judged else ""
+    lines.append("\nChange = SFT+ORPO (16-bit) minus base. The judge scored the 16-bit models only" + judged +
+                 "." + note + " Confidence intervals and the training-free baselines (2-shot prompting, RAG): "
                  "[Full comparison](#full-comparison).")
     return "\n".join(lines)
 
