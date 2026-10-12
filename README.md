@@ -7,6 +7,7 @@ encounter notes, write SOAP notes and extract medical entities, served offline f
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue)](.python-version)
 [![Inference: 100% local, offline](https://img.shields.io/badge/inference-100%25%20local%20%2F%20offline-brightgreen)](#how-this-repository-keeps-inference-local-verified)
 [![Model: GGUF Q4_K_M, 4.4 GB](https://img.shields.io/badge/model-GGUF%20Q4__K__M%2C%204.4%20GB-lightgrey)](#quickstart-run-the-demo)
+[![Hugging Face: LocalClinical-Tuner-7B-GGUF](https://img.shields.io/badge/Hugging%20Face-LocalClinical--Tuner--7B--GGUF-yellow)](https://huggingface.co/MehranK1/LocalClinical-Tuner-7B-GGUF)
 [![Base model: Qwen2.5-7B-Instruct](https://img.shields.io/badge/base-Qwen2.5--7B--Instruct-purple)](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)
 [![Training: Unsloth + TRL](https://img.shields.io/badge/training-Unsloth%20%2B%20TRL-orange)](https://github.com/unslothai/unsloth)
 
@@ -34,9 +35,11 @@ independent LLM judge) → **GGUF** → **Ollama / OpenAI-compatible API / Gradi
 
 > [!IMPORTANT]
 > **Models are large and are not stored in git.** The demo runs the exported model file
-> `outputs/gguf/localclinical-q4_k_m.gguf` (4.4 GB). Pre-built weights are **not published yet**, so for now the file
-> has to come from a pipeline run:
+> `outputs/gguf/localclinical-q4_k_m.gguf` (4.4 GB). Get it in one of these ways:
 >
+> * **Download it** from Hugging Face:
+>   [MehranK1/LocalClinical-Tuner-7B-GGUF](https://huggingface.co/MehranK1/LocalClinical-Tuner-7B-GGUF) (only the
+>   Q4_K_M file is published there; the command is below).
 > * **Build it:** run the pipeline ([Reproduce everything](#reproduce-everything)); `serving/export_gguf.py` writes it.
 >   Training needs one 24 GB GPU (see [Hardware](#hardware)).
 > * **Copy it** from a machine where the pipeline ran into `outputs/gguf/`, or point the demo at it with
@@ -61,13 +64,22 @@ git clone https://github.com/MehranKeivanimehr/LocalClinical-Tuner.git && cd Loc
 uv sync --locked --extra serve
 ```
 
-Place `localclinical-q4_k_m.gguf` in `outputs/gguf/` (see above), check it against the reference run's SHA-256
-(`sha256sum outputs/gguf/localclinical-q4_k_m.gguf`; on macOS `shasum -a 256 ...`), and start the demo:
+Download the model file (4.4 GB) into `outputs/gguf/` with the Hugging Face CLI that `uv sync` installs (or place a
+file you built or copied there, see above):
+
+```bash
+uv run hf download MehranK1/LocalClinical-Tuner-7B-GGUF localclinical-q4_k_m.gguf --local-dir outputs/gguf
+```
+
+Check it against the reference run's SHA-256 (`sha256sum outputs/gguf/localclinical-q4_k_m.gguf`; on macOS
+`shasum -a 256 ...`). The Q5_K_M line applies only to a file you export yourself; it is not published.
 
 ```text
 2fca1270b90fc502e257109ad0e3cc0c508028cf36eafc71a3f6b1480eab300b  localclinical-q4_k_m.gguf
 5d4b3fe1ab68d97a8deba534b9e7e111140864e9679758f9f0e7745091095ac4  localclinical-q5_k_m.gguf
 ```
+
+Start the demo:
 
 ```bash
 bash scripts/run_demo.sh
@@ -109,7 +121,7 @@ GGUF's embedded chat template.
 | Symptom | What to do |
 |---|---|
 | `Ollama is not installed` | Install it from [ollama.com/download](https://ollama.com/download) (Linux: `curl -fsSL https://ollama.com/install.sh \| sh`) or point `OLLAMA_BIN` at the binary. |
-| `GGUF not found at ...` | The weights are not in git (see the box above). Put the file in `outputs/gguf/` or run `GGUF=/path/to/localclinical-q4_k_m.gguf bash scripts/run_demo.sh`. |
+| `GGUF not found at ...` | The weights are not in git (see the box above). Download them with `uv run hf download MehranK1/LocalClinical-Tuner-7B-GGUF localclinical-q4_k_m.gguf --local-dir outputs/gguf`, or run `GGUF=/path/to/localclinical-q4_k_m.gguf bash scripts/run_demo.sh`. |
 | Port 7860 is already in use | `bash scripts/run_demo.sh --port 7861` (extra arguments are passed to `serving/gradio_app.py`). |
 | Port 11434 is used by another program | `OLLAMA_HOST=127.0.0.1:11435 bash scripts/run_demo.sh` |
 | An Ollama server is already running (for example the system service) | The script reuses it as it is, so `OLLAMA_NO_CLOUD=1` only takes effect when the script starts Ollama itself. Stop the running server first, or set `OLLAMA_NO_CLOUD=1` in its environment. |

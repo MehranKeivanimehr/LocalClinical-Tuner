@@ -81,9 +81,17 @@ On a 16 GB GPU, train SFT with `--set sft.per_device_batch_size=1 --set sft.grad
 
 ## Where do I get the model weights?
 
-The weights are not stored in git (the Q4_K_M GGUF is 4.4 GB) and are not published yet. Build them with the
-pipeline ([Reproduce everything](../README.md#reproduce-everything)) or copy `localclinical-q4_k_m.gguf` from a
-machine where the pipeline ran into `outputs/gguf/`. The reference run's SHA-256 checksums are listed in the
+The weights are not stored in git (the Q4_K_M GGUF is 4.4 GB). Download the Q4_K_M file from Hugging Face at
+[MehranK1/LocalClinical-Tuner-7B-GGUF](https://huggingface.co/MehranK1/LocalClinical-Tuner-7B-GGUF):
+
+```bash
+uv run hf download MehranK1/LocalClinical-Tuner-7B-GGUF localclinical-q4_k_m.gguf --local-dir outputs/gguf
+```
+
+Only the Q4_K_M file is published; the Q5_K_M file was produced by the export step but is neither published nor
+evaluated. You can also build the weights with the pipeline
+([Reproduce everything](../README.md#reproduce-everything)) or copy `localclinical-q4_k_m.gguf` from a machine where
+the pipeline ran into `outputs/gguf/`. The reference run's SHA-256 checksums are listed in the
 [Quickstart](../README.md#quickstart-run-the-demo).
 
 ## Can I bring my own notes?

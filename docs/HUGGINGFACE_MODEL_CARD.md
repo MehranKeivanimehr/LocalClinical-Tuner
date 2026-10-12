@@ -21,11 +21,6 @@ datasets:
   - lyumengxian/MTS-Dialog
 ---
 
-<!--
-Paste this file as README.md of the Hugging Face model repo. Before publishing, replace every <hf-user> with the
-Hugging Face account name.
--->
-
 # LocalClinical-Tuner 7B (GGUF)
 
 A **research model** for clinical-documentation tasks that runs entirely on local hardware: Qwen2.5-7B-Instruct
@@ -36,8 +31,7 @@ fine-tuned with QLoRA SFT followed by ORPO, exported to GGUF for Ollama and llam
 > clinical decisions, and do not use it on real patient records.
 
 * **Code, data pipeline and full evaluation:** https://github.com/MehranKeivanimehr/LocalClinical-Tuner
-* **Files:** `localclinical-q4_k_m.gguf` (4.36 GB, used for the reported GGUF results), `localclinical-q5_k_m.gguf`
-  (5.07 GB, not evaluated separately), `Modelfile` (Ollama)
+* **Files:** `localclinical-q4_k_m.gguf` (4.36 GB, the file evaluated in the results below) and `Modelfile` (Ollama).
 
 ## Model description
 
@@ -46,7 +40,7 @@ fine-tuned with QLoRA SFT followed by ORPO, exported to GGUF for Ollama and llam
 | Base model | [Qwen/Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) (Apache-2.0) |
 | Stage 1 | Supervised fine-tuning with Unsloth QLoRA (4-bit NF4 base, LoRA r=32 on all attention and MLP projections), loss on response tokens only |
 | Stage 2 | ORPO preference optimization (λ = 0.1, NLL term on response tokens only) on 426 pairs: the SFT model's own worst samples plus targeted clinical hard negatives |
-| Export | merged to 16-bit, converted with llama.cpp, quantized to Q4_K_M and Q5_K_M |
+| Export | merged to 16-bit, converted with llama.cpp, quantized to Q4_K_M (published here; a Q5_K_M file was also produced but is not published or evaluated) |
 | Context used in evaluation | 8,192 tokens |
 | Language | English |
 
@@ -135,13 +129,13 @@ Confidence intervals, per-source tables, judge details and side-by-side outputs:
 | File | Quantization | Size | Evaluated |
 |---|---|---|---|
 | `localclinical-q4_k_m.gguf` | Q4_K_M | 4.36 GB | yes: within the 95% CIs of the 16-bit model on every metric (largest drop: strict entity F1 0.796 → 0.774) |
-| `localclinical-q5_k_m.gguf` | Q5_K_M | 5.07 GB | no |
+
+A Q5_K_M file (5.07 GB) was also produced by the export step; it is not published here and was not evaluated.
 
 SHA-256:
 
 ```text
 2fca1270b90fc502e257109ad0e3cc0c508028cf36eafc71a3f6b1480eab300b  localclinical-q4_k_m.gguf
-5d4b3fe1ab68d97a8deba534b9e7e111140864e9679758f9f0e7745091095ac4  localclinical-q5_k_m.gguf
 ```
 
 Measured on an RTX A6000 with Ollama: about 5.1 GB of GPU memory at an 8,192-token context; a summary in 3.8 s and a
@@ -152,7 +146,7 @@ SOAP note or entity extraction in about 10 s once the model is loaded.
 ### Ollama
 
 ```bash
-hf download <hf-user>/LocalClinical-Tuner-7B-GGUF localclinical-q4_k_m.gguf Modelfile --local-dir localclinical
+hf download MehranK1/LocalClinical-Tuner-7B-GGUF localclinical-q4_k_m.gguf Modelfile --local-dir localclinical
 cd localclinical && ollama create localclinical -f Modelfile
 ```
 
