@@ -1015,7 +1015,6 @@ LocalClinical-Tuner/
 ├── docs/
 │   ├── FAQ.md                        # clinical use, data, ORPO, SFT vs RAG, hardware, your own notes
 │   ├── HUGGINGFACE_MODEL_CARD.md     # model card text for a Hugging Face upload
-│   ├── RELEASE_CHECKLIST.md          # Hugging Face upload + GitHub settings (topics, description)
 │   └── images/                       # demo GIF and screenshots (real outputs)
 ├── tests/                            # unit tests (pytest)
 ├── pyproject.toml / uv.lock / .python-version
